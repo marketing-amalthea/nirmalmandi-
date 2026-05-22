@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-nm-bg text-nm-text dark:bg-nm-bg-dark dark:text-nm-text-dark;
+  }
+
+  * {
+    @apply border-nm-border dark:border-nm-border-dark;
+  }
+}
+
+@layer components {
+  .nm-card {
+    @apply bg-nm-surface dark:bg-nm-surface-dark rounded-xl shadow-nm-card dark:shadow-nm-card-dark border border-nm-border dark:border-nm-border-dark;
+  }
+
+  .nm-btn-primary {
+    @apply bg-nm-primary hover:bg-nm-primary-dark text-white font-medium px-4 py-2 rounded-lg transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .nm-btn-secondary {
+    @apply bg-white dark:bg-nm-surface-dark border border-nm-border dark:border-nm-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 text-nm-text dark:text-nm-text-dark font-medium px-4 py-2 rounded-lg transition-colors duration-150;
+  }
+
+  .nm-btn-danger {
+    @apply bg-nm-danger hover:bg-nm-danger-dark text-white font-medium px-4 py-2 rounded-lg transition-colors duration-150;
+  }
+
+  .nm-input {
+    @apply w-full bg-white dark:bg-nm-surface-dark border border-nm-border dark:border-nm-border-dark rounded-lg px-3 py-2 text-nm-text dark:text-nm-text-dark placeholder-nm-text-muted dark:placeholder-nm-text-dark-muted focus:outline-none focus:ring-2 focus:ring-nm-primary focus:border-transparent transition-all duration-150;
+  }
+
+  .nm-select {
+    @apply nm-input cursor-pointer;
+  }
+
+  .nm-label {
+    @apply block text-sm font-medium text-nm-text-muted dark:text-nm-text-dark-muted mb-1;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
+}

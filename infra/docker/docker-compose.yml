@@ -1,0 +1,149 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nm_postgres
+    environment:
+      POSTGRES_USER: nirmalmandi
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: nirmalmandi
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ../migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nirmalmandi']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: nm_redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
+    container_name: nm_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
+    ports:
+      - '9200:9200'
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9200/_cluster/health']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  auth-service:
+    build:
+      context: ../..
+      dockerfile: packages/auth-service/Dockerfile
+    container_name: nm_auth
+    ports:
+      - '3001:3001'
+    env_file: ../../.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  inventory-service:
+    build:
+      context: ../..
+      dockerfile: packages/inventory-service/Dockerfile
+    container_name: nm_inventory
+    ports:
+      - '3002:3002'
+    env_file: ../../.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      elasticsearch: { condition: service_healthy }
+
+  order-service:
+    build:
+      context: ../..
+      dockerfile: packages/order-service/Dockerfile
+    container_name: nm_order
+    ports:
+      - '3003:3003'
+    env_file: ../../.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  search-service:
+    build:
+      context: ../..
+      dockerfile: packages/search-service/Dockerfile
+    container_name: nm_search
+    ports:
+      - '3004:3004'
+    env_file: ../../.env
+    depends_on:
+      elasticsearch: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  payment-service:
+    build:
+      context: ../..
+      dockerfile: packages/payment-service/Dockerfile
+    container_name: nm_payment
+    ports:
+      - '3005:3005'
+    env_file: ../../.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  notification-service:
+    build:
+      context: ../..
+      dockerfile: packages/notification-service/Dockerfile
+    container_name: nm_notification
+    ports:
+      - '3006:3006'
+    env_file: ../../.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  ai-service:
+    build:
+      context: ../..
+      dockerfile: ai-service/Dockerfile
+    container_name: nm_ai
+    ports:
+      - '8000:8000'
+    env_file: ../../.env
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  admin:
+    build:
+      context: ../..
+      dockerfile: admin/Dockerfile
+    container_name: nm_admin
+    ports:
+      - '3000:3000'
+    env_file: ../../.env
+
+volumes:
+  pg_data:
+  redis_data:
+  es_data:

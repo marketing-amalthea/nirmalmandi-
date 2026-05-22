@@ -1,0 +1,38 @@
+{
+  "name": "nirmalmandi",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "admin",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:auth\" \"npm run dev:inventory\" \"npm run dev:order\" \"npm run dev:search\" \"npm run dev:payment\" \"npm run dev:notification\" \"npm run dev:logistics\" \"npm run dev:analytics\" \"npm run dev:invoice\" \"npm run dev:dispute\" \"npm run dev:admin\" \"npm run dev:web\"",
+    "dev:auth": "npm run dev --workspace=packages/auth-service",
+    "dev:inventory": "npm run dev --workspace=packages/inventory-service",
+    "dev:order": "npm run dev --workspace=packages/order-service",
+    "dev:search": "npm run dev --workspace=packages/search-service",
+    "dev:payment": "npm run dev --workspace=packages/payment-service",
+    "dev:notification": "npm run dev --workspace=packages/notification-service",
+    "dev:logistics": "npm run dev --workspace=packages/logistics-service",
+    "dev:analytics": "npm run dev --workspace=packages/analytics-service",
+    "dev:invoice": "npm run dev --workspace=packages/invoice-service",
+    "dev:dispute": "npm run dev --workspace=packages/dispute-service",
+    "dev:admin": "npm run dev --workspace=admin",
+    "dev:web": "npm run dev --workspace=web",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "migrate": "npm run migrate --workspace=packages/shared"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "dotenv": "^17.4.2",
+    "pg": "^8.20.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

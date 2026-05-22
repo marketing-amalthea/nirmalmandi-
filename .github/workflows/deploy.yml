@@ -1,0 +1,202 @@
+name: NirmalMandi CI/CD
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com
+
+jobs:
+  # ── Test ────────────────────────────────────────────────────
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nirmalmandi
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: nirmalmandi_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7.2-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Run backend tests
+        run: npm run test --workspaces --if-present
+        env:
+          DATABASE_URL: postgresql://nirmalmandi:password@localhost:5432/nirmalmandi_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+          JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
+          JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install AI service deps
+        run: pip install -r ai-service/requirements.txt
+
+      - name: Run AI service tests
+        run: python -m pytest ai-service/tests/ -v --tb=short
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # ── Build ────────────────────────────────────────────────────
+  build:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        service:
+          - auth-service
+          - inventory-service
+          - order-service
+          - search-service
+          - payment-service
+          - notification-service
+          - logistics-service
+          - analytics-service
+          - invoice-service
+          - dispute-service
+          - ai-service
+          - admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push ${{ matrix.service }}
+        run: |
+          IMAGE=$ECR_REGISTRY/nirmalmandi-${{ matrix.service }}:${{ github.sha }}
+          DOCKERFILE=packages/${{ matrix.service }}/Dockerfile
+          if [ "${{ matrix.service }}" = "ai-service" ]; then
+            DOCKERFILE=ai-service/Dockerfile
+          fi
+          if [ "${{ matrix.service }}" = "admin" ]; then
+            DOCKERFILE=admin/Dockerfile
+          fi
+          docker build -f $DOCKERFILE -t $IMAGE .
+          docker push $IMAGE
+
+  # ── Deploy Staging ───────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/staging'
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy all services to staging ECS
+        run: |
+          SERVICES=(auth-service inventory-service order-service search-service payment-service notification-service logistics-service analytics-service invoice-service dispute-service ai-service admin)
+          for SERVICE in "${SERVICES[@]}"; do
+            aws ecs update-service \
+              --cluster nm-staging \
+              --service nm-$SERVICE \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }}
+          done
+
+      - name: Wait for staging stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster nm-staging \
+            --services nm-auth-service nm-inventory-service nm-order-service \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: '{"text":"✅ Staging deploy complete — ${{ github.sha }}"}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ── Deploy Production ────────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://api.nirmalmandi.com
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy all services to production ECS
+        run: |
+          SERVICES=(auth-service inventory-service order-service search-service payment-service notification-service logistics-service analytics-service invoice-service dispute-service ai-service admin)
+          for SERVICE in "${SERVICES[@]}"; do
+            aws ecs update-service \
+              --cluster nm-production \
+              --service nm-$SERVICE \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }}
+          done
+
+      - name: Tag release
+        run: |
+          git tag "release-$(date +%Y%m%d-%H%M%S)"
+          git push --tags
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: '{"text":"🚀 PRODUCTION deploy complete — ${{ github.sha }}"}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
