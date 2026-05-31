@@ -10,6 +10,7 @@ import { sectorsRouter } from './routes/sectors';
 import { imagesRouter } from './routes/images';
 import { adminInventoryRouter } from './routes/adminInventory';
 import { adminCategoriesRouter } from './routes/adminCategories';
+import { sellerRouter } from './routes/seller';
 
 const app = express();
 const PORT = process.env.INVENTORY_SERVICE_PORT || 3002;
@@ -22,6 +23,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'inventory-s
 app.use('/listings', listingsRouter);
 app.use('/sectors', sectorsRouter);
 app.use('/images', imagesRouter);
+app.use('/seller', sellerRouter);
 app.use('/admin/inventory', adminInventoryRouter);
 app.use('/admin/categories', adminCategoriesRouter);
 

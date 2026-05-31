@@ -9,6 +9,7 @@ import { analyticsRouter } from './routes/analytics';
 import { scheduledJobs } from './engines/scheduler';
 import { adminStatsRouter } from './routes/adminStats';
 import { adminSettingsRouter } from './routes/adminSettings';
+import { sellerAnalyticsRouter } from './routes/seller';
 
 const app = express();
 const PORT = process.env.ANALYTICS_SERVICE_PORT || 3008;
@@ -21,6 +22,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'analytics-s
 app.use('/analytics', analyticsRouter);
 app.use('/admin/stats', adminStatsRouter);
 app.use('/admin/settings', adminSettingsRouter);
+app.use('/seller', sellerAnalyticsRouter);
 
 // Start scheduled analytics jobs
 scheduledJobs.start();
