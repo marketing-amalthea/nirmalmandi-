@@ -255,6 +255,34 @@ export default function SellerDashboardPage() {
         />
       </div>
 
+      {/* Capital Recovery Estimator */}
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <IndianRupee className="w-4 h-4 text-green-600" />
+          <h2 className="text-base font-semibold text-gray-900">Capital Recovery Estimator</h2>
+        </div>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500 mb-1">GMV This Month</p>
+            <p className="text-xl font-bold text-gray-900">{formatCurrency(d.gmv_month)}</p>
+          </div>
+          <div className="bg-green-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500 mb-1">After Platform Fee (2.5%)</p>
+            <p className="text-xl font-bold text-green-700">{formatCurrency(d.gmv_month * 0.975)}</p>
+          </div>
+          <div className="bg-blue-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500 mb-1">Pending Payout</p>
+            <p className="text-xl font-bold text-blue-700">{formatCurrency(d.pending_payout)}</p>
+            {d.next_payout_date && (
+              <p className="text-[10px] text-blue-500 mt-0.5">Due {formatDate(d.next_payout_date)}</p>
+            )}
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-3 text-center">
+          Platform fee: 2.5% + 18% GST on fee. Full payout after buyer confirms delivery.
+        </p>
+      </div>
+
       {/* Recent Orders */}
       <div className="card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
