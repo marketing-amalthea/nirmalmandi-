@@ -21,7 +21,7 @@
 - [x] Sector-specific field display on listing detail
 - [x] `/admin/stats/dashboard` + `/admin/stats/gmv` + `/admin/stats/alerts` endpoints
 - [x] Admin dashboard wired to statsApi
-- [ ] Delhivery freight estimate wired (remove fallback)
+- [x] Delhivery freight estimate wired — rewrite fixed, logisticsApi added, checkout uses buyer pincode + weight estimate
 
 ### Sprint 3 — AI Marketing Panel + Notifications ✅
 - [x] `MarketingPanel.tsx` web component — language/tone/platform selectors, AI caption, copy, share
@@ -53,52 +53,53 @@
 - [x] `negotiationsApi` added to `web/src/lib/api.ts`
 - [ ] Negotiation thread polling / real-time updates on web
 
-### Sprint 6 — Auction UI + WebSocket Frontend
-- [ ] Auction listing UI — live bid display, countdown clock, "Place Bid" primary CTA
-- [ ] WebSocket client hook (`useAuction.ts`) for real-time bid updates
-- [ ] Outbid push notification trigger
-- [ ] Reserve not met handling UI
-- [ ] Bid increment validation on frontend
+### Sprint 6 — Auction UI + WebSocket Frontend ✅
+- [x] Auction listing UI — AuctionPanel.tsx — live bid, countdown, bidder count, quick-bid buttons
+- [x] WebSocket client hook (`useAuction.ts`) — auto-reconnect, outbid toast, room join/leave
+- [x] Outbid push notification trigger — `notifyOutbid()` in auction.ts → notification service
+- [x] Reserve not met UI — shown in AuctionPanel bid stats when highestBid < reservePrice
+- [x] Bid increment validation — frontend: `amount < minNextBid` guard; backend: same check
 
-### Sprint 7 — Buyer Intelligence + Search
-- [ ] Save search with push notification alerts
-- [ ] Watchlist price drop alert background job
-- [ ] Voice search mic wired to Whisper API
+### Sprint 7 — Buyer Intelligence + Search ✅
+- [x] Save search with push notification alerts (localStorage-based, push alert infra ready)
+- [x] Watchlist price drop alert background job — scheduler.ts 6h cron → notification service
+- [x] Voice search mic (Web Speech API, Hindi + English) — already built, discovered
 - [ ] AI search autocomplete from `/search/suggest`
-- [ ] Side-by-side lot comparison (up to 3 listings)
-- [ ] Buyer Tier 2 verification flow (checkout > ₹1L)
-- [ ] Buyer Tier 3 verification flow (checkout > ₹10L)
-- [ ] "Market Again" + Reorder + CSV export in purchase history
+- [x] Side-by-side lot comparison (up to 3 listings) — CompareDrawer.tsx + ListingCard compare toggle
+- [x] Buyer Tier 2 verification flow (checkout > ₹1L) — TierVerifyModal.tsx gate in handlePay
+- [x] Buyer Tier 3 verification flow (checkout > ₹10L) — same modal, tier=3 path
+- [x] "Market Again" + Reorder in purchase history — already built
+- [x] CSV export in purchase history — exportCSV() downloads .csv
 
-### Sprint 8 — Seller Intelligence
-- [ ] Per-listing performance metrics (views, inquiries, watchlist saves, CVR)
-- [ ] AI urgency score visible on seller listing cards
-- [ ] Bulk actions in seller listings (pause/unpause/delist/relist/price change)
-- [ ] Seller analytics — revenue chart, category performance, conversion funnel
-- [ ] AI insights panel in seller analytics (top 3 recommendations this week)
-- [ ] Inventory aging alerts on seller dashboard
-- [ ] Mobile seller analytics tab
+### Sprint 8 — Seller Intelligence ✅
+- [x] Per-listing performance metrics — `GET /seller/listings/:id/performance` in analytics-service; inline expand row in seller listings table (views/day, inquiries, CVR, 10d sparkline)
+- [x] AI urgency score on seller listing cards — colour-coded progress bar — already built, discovered
+- [x] Bulk actions — pause/unpause/delist/price change — already built, discovered
+- [x] Seller analytics — revenue chart, category performance, funnel — already built, discovered
+- [x] AI insights panel — rule-based (3 conditions) + "Ask Claude" button → ai-service `/ai/seller/insights` (new endpoint)
+- [x] Inventory aging alerts on seller dashboard — already built, discovered
+- [x] Mobile seller analytics tab — `mobile/app/(seller)/analytics.tsx` — KPI grid, funnel, top listings, AI insight teaser
 
-### Sprint 9 — Admin Intelligence + 3PL
-- [ ] Inventory age heatmap in admin (green → red by listing age)
-- [ ] Demand-supply gap visualization
-- [ ] Seller performance scorecard per seller
-- [ ] Category management — approve/reject AI-generated categories
-- [ ] Real-time transaction feed on admin dashboard
-- [ ] Delhivery 3PL — book shipment, get AWB, tracking
-- [ ] Shiprocket integration
-- [ ] Live logistics tracking in order detail
+### Sprint 9 — Admin Intelligence + 3PL ✅
+- [x] Inventory age heatmap — `GET /admin/stats/inventory-heatmap` + `InventoryHeatmap` component (5 age buckets, per-sector stacked bar)
+- [x] Demand-supply gap — `GET /admin/stats/demand-supply` + `DemandSupplyChart` (views vs listings dual bar per sector)
+- [x] Seller performance scorecard — `GET /admin/stats/seller-scorecard` + `SellerScorecard` table (GMV, orders, score, dispute%, fill%)
+- [x] Category management — approve/reject — already built in categories admin page (discovered)
+- [x] Real-time transaction feed — already built via `/admin/stats/recent-transactions` (discovered)
+- [x] Delhivery 3PL — `POST /logistics/shipments/book-delhivery` — calls Delhivery pickup API, stores AWB + tracking URL
+- [x] Shiprocket integration — `POST /logistics/shipments/book-shiprocket` — Shiprocket auth + order creation, stores AWB
+- [x] Live logistics tracking in order detail — `LiveTrackingCard` component, fetches `GET /logistics/shipments/order/:id`, 5-stage visual timeline, 60s auto-refresh
 
-### Sprint 10 — Referral Engine + BI Engines 1-4
-- [ ] Referral engine — unique link, click/conversion tracking, earnings calculation
-- [ ] Tiered rewards (Silver/Gold/Platinum)
-- [ ] Referral dashboard — QR code, share via WhatsApp
-- [ ] BI Engine 1: Sales velocity predictor (real data)
-- [ ] BI Engine 2: Demand-supply gap (search logs vs listings)
-- [ ] BI Engine 3: Revenue forecasting (Prophet)
-- [ ] BI Engine 4: Inventory aging risk (ML scoring)
-- [ ] Weekly auto-report email — every Monday 8AM IST
-- [ ] Configurable KPI alert thresholds in admin settings
+### Sprint 10 — Referral Engine + BI Engines 1-4 ✅
+- [x] Referral engine — unique link, conversion tracking, commission calc — already built in auth-service/profile.ts
+- [x] Tiered rewards (Silver/Gold/Platinum) — fully built in web/src/app/referral/page.tsx
+- [x] Referral dashboard — QR code via qrserver.com API (no package), WhatsApp share, copy, payout history
+- [x] BI Engine 1: Sales velocity — salesVelocity.ts + GET /analytics/sales-velocity/:id — already built
+- [x] BI Engine 2: Demand-supply gap — demandSupply.ts + GET /analytics/demand-supply-gap — already built
+- [x] BI Engine 3: Revenue forecast — revenueForecast.ts + GET /analytics/revenue-forecast — already built
+- [x] BI Engine 4: Inventory aging risk — agingRisk.ts + GET /analytics/aging-risk — already built
+- [x] Weekly auto-report email — scheduler.ts runs every 5min, fires on Monday 02:30 UTC (08:00 IST), sends HTML report to platform_settings.weekly_report_emails
+- [x] Configurable KPI alert thresholds — 5 new defaults in adminSettings.ts (GMV drop%, dispute rate%, aging days, CVR%, report emails), full UI in admin settings page
 
 ---
 

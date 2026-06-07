@@ -49,7 +49,7 @@ export default function AuctionPanel({
   const [placing, setPlacing] = useState(false);
 
   const endsAt = state.auction_ends_at ?? initialEndsAt;
-  const countdown = useCountdown(endsAt);
+  const countdown = useCountdown(endsAt ?? null);
   const highestBid = state.highest_bid || askingPrice;
   const minNextBid = highestBid + 1;
   const isEnded = endsAt ? new Date(endsAt).getTime() <= Date.now() : false;

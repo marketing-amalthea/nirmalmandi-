@@ -44,7 +44,7 @@ export default function LoginPage() {
       <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-nm-primary">NirmalMandi</h1>
-          <p className="text-nm-muted mt-1">Admin Console</p>
+          <p className="text-nm-text-muted mt-1">Admin Console</p>
         </div>
 
         {error && (
@@ -75,7 +75,7 @@ export default function LoginPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-nm-muted">OTP sent to {phone}</p>
+            <p className="text-sm text-nm-text-muted">OTP sent to {phone}</p>
             <div>
               <label className="block text-sm font-medium text-nm-text mb-1">Enter OTP</label>
               <input
@@ -94,7 +94,7 @@ export default function LoginPage() {
             >
               {loading ? 'Verifying...' : 'Login'}
             </button>
-            <button onClick={() => setStep('phone')} className="w-full text-sm text-nm-muted hover:text-nm-primary">
+            <button onClick={() => setStep('phone')} className="w-full text-sm text-nm-text-muted hover:text-nm-primary">
               Change number
             </button>
           </div>

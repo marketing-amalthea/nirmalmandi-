@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Dispute Resolution Service.
- * Handles raise → evidence → admin review → resolution → escrow directive.
+ * Handles raise â†’ evidence â†’ admin review â†’ resolution â†’ escrow directive.
  * SLA: 24h first response, 72h resolution.
  * Escrow directive: admin can release to seller or refund buyer after review.
  */
@@ -34,7 +34,7 @@ async function notify(userId: string, templateKey: string, variables: string[]) 
   );
 }
 
-// ── POST /disputes/raise ─────────────────────────────────────────
+// â”€â”€ POST /disputes/raise â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const raiseSchema = z.object({
   orderId: z.string().uuid(),
   reason: z.enum(['not_received', 'wrong_item', 'damaged', 'quality_issue', 'quantity_mismatch', 'other']),
@@ -43,7 +43,7 @@ const raiseSchema = z.object({
 
 disputesRouter.post('/raise', authenticate, async (req: Request, res: Response) => {
   const parsed = raiseSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', parsed.error.issues));
+  if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', 'VALIDATION_ERROR', parsed.error.issues));
   const { orderId, reason, description } = parsed.data;
 
   const order = await queryOne<{
@@ -51,7 +51,7 @@ disputesRouter.post('/raise', authenticate, async (req: Request, res: Response) 
   }>('SELECT id, buyer_id, seller_id, status, order_number FROM orders WHERE id = $1', [orderId]);
 
   if (!order) return res.status(404).json(errorResponse('Order not found'));
-  if (order.buyer_id !== req.user!.userId) return res.status(403).json(errorResponse('Only buyer can raise dispute'));
+  if (order.buyer_id !== req.user!.sub) return res.status(403).json(errorResponse('Only buyer can raise dispute'));
   if (!['paid', 'shipped', 'delivered', 'completed'].includes(order.status)) {
     return res.status(409).json(errorResponse('Cannot raise dispute for this order status'));
   }
@@ -73,7 +73,7 @@ disputesRouter.post('/raise', authenticate, async (req: Request, res: Response) 
        VALUES ($1, $2, $3, $4, $5, $6, 'open', $7, NOW(), NOW())`,
       [disputeId, orderId, order.buyer_id, order.seller_id, reason, description, slaDeadline]
     );
-    // Put escrow on hold — block auto-release
+    // Put escrow on hold â€” block auto-release
     await client.query(
       `UPDATE escrow_accounts SET dispute_hold = true WHERE order_id = $1`,
       [orderId]
@@ -99,7 +99,7 @@ disputesRouter.post('/raise', authenticate, async (req: Request, res: Response) 
   }));
 });
 
-// ── POST /disputes/:id/evidence ──────────────────────────────────
+// â”€â”€ POST /disputes/:id/evidence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Get pre-signed URL to upload evidence (images, videos, documents).
 disputesRouter.post('/:id/evidence', authenticate, async (req: Request, res: Response) => {
   const dispute = await queryOne<{ buyer_id: string; seller_id: string; status: string }>(
@@ -108,7 +108,7 @@ disputesRouter.post('/:id/evidence', authenticate, async (req: Request, res: Res
   );
   if (!dispute) return res.status(404).json(errorResponse('Dispute not found'));
 
-  const isParty = [dispute.buyer_id, dispute.seller_id].includes(req.user!.userId);
+  const isParty = [dispute.buyer_id, dispute.seller_id].includes(req.user!.sub);
   if (!isParty) return res.status(403).json(errorResponse('Forbidden'));
   if (['resolved', 'closed'].includes(dispute.status)) {
     return res.status(409).json(errorResponse('Dispute already closed'));
@@ -131,13 +131,13 @@ disputesRouter.post('/:id/evidence', authenticate, async (req: Request, res: Res
   await query(
     `INSERT INTO dispute_evidence (id, dispute_id, uploaded_by, file_url, file_name, file_type, created_at)
      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW())`,
-    [req.params.id, req.user!.userId, fileUrl, fileName, fileType]
+    [req.params.id, req.user!.sub, fileUrl, fileName, fileType]
   );
 
   return res.json(successResponse({ uploadUrl, fileUrl }));
 });
 
-// ── GET /disputes/:id ────────────────────────────────────────────
+// â”€â”€ GET /disputes/:id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 disputesRouter.get('/:id', authenticate, async (req: Request, res: Response) => {
   const dispute = await queryOne(
     `SELECT d.*, o.order_number,
@@ -152,16 +152,16 @@ disputesRouter.get('/:id', authenticate, async (req: Request, res: Response) => 
   );
   if (!dispute) return res.status(404).json(errorResponse('Dispute not found'));
 
-  const isParty = [dispute.buyer_id, dispute.seller_id].includes(req.user!.userId);
+  const isParty = [dispute.buyer_id, dispute.seller_id].includes(req.user!.sub);
   const isAdmin = req.user!.role === 'admin';
   if (!isParty && !isAdmin) return res.status(403).json(errorResponse('Forbidden'));
 
   return res.json(successResponse(dispute));
 });
 
-// ── GET /disputes/my ─────────────────────────────────────────────
+// â”€â”€ GET /disputes/my â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 disputesRouter.get('/my', authenticate, async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
+  const userId = req.user!.sub;
   const rows = await query(
     `SELECT d.id, d.reason, d.status, d.sla_deadline, d.created_at, o.order_number
      FROM disputes d JOIN orders o ON d.order_id = o.id
@@ -172,7 +172,7 @@ disputesRouter.get('/my', authenticate, async (req: Request, res: Response) => {
   return res.json(successResponse(rows));
 });
 
-// ── POST /disputes/:id/message ───────────────────────────────────
+// â”€â”€ POST /disputes/:id/message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Either party or admin can add messages to dispute thread.
 disputesRouter.post('/:id/message', authenticate, async (req: Request, res: Response) => {
   const { message } = req.body;
@@ -183,19 +183,19 @@ disputesRouter.post('/:id/message', authenticate, async (req: Request, res: Resp
   );
   if (!dispute) return res.status(404).json(errorResponse('Dispute not found'));
 
-  const isParty = [dispute.buyer_id, dispute.seller_id].includes(req.user!.userId);
+  const isParty = [dispute.buyer_id, dispute.seller_id].includes(req.user!.sub);
   const isAdmin = req.user!.role === 'admin';
   if (!isParty && !isAdmin) return res.status(403).json(errorResponse('Forbidden'));
 
   await query(
     `INSERT INTO dispute_messages (id, dispute_id, sender_id, message, created_at)
      VALUES (gen_random_uuid(), $1, $2, $3, NOW())`,
-    [req.params.id, req.user!.userId, message.trim()]
+    [req.params.id, req.user!.sub, message.trim()]
   );
   return res.json(successResponse({ sent: true }));
 });
 
-// ── POST /disputes/:id/resolve ───────────────────────────────────
+// â”€â”€ POST /disputes/:id/resolve â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Admin resolves: decides 'release_to_seller' or 'refund_buyer'.
 const resolveSchema = z.object({
   outcome: z.enum(['release_to_seller', 'refund_buyer']),
@@ -204,7 +204,7 @@ const resolveSchema = z.object({
 
 disputesRouter.post('/:id/resolve', authenticate, requireRole('admin'), async (req: Request, res: Response) => {
   const parsed = resolveSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', parsed.error.issues));
+  if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', 'VALIDATION_ERROR', parsed.error.issues));
   const { outcome, resolution } = parsed.data;
 
   const dispute = await queryOne<{
@@ -224,7 +224,7 @@ disputesRouter.post('/:id/resolve', authenticate, requireRole('admin'), async (r
        SET status = 'resolved', outcome = $1, resolution_note = $2,
            resolved_by = $3, resolved_at = NOW(), updated_at = NOW()
        WHERE id = $4`,
-      [outcome, resolution, req.user!.userId, dispute.id]
+      [outcome, resolution, req.user!.sub, dispute.id]
     );
 
     if (outcome === 'refund_buyer') {
@@ -261,12 +261,12 @@ disputesRouter.post('/:id/resolve', authenticate, requireRole('admin'), async (r
   await notify(dispute.seller_id, 'DISPUTE_RAISED', [dispute.order_number, `Resolved: ${outcome}`]);
 
   logger.info('Dispute resolved', {
-    disputeId: dispute.id, outcome, adminId: req.user!.userId,
+    disputeId: dispute.id, outcome, adminId: req.user!.sub,
   });
   return res.json(successResponse({ resolved: true, outcome }));
 });
 
-// ── GET /disputes/admin/queue ────────────────────────────────────
+// â”€â”€ GET /disputes/admin/queue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 disputesRouter.get('/admin/queue', authenticate, requireRole('admin'), async (req: Request, res: Response) => {
   const rows = await query(
     `SELECT d.id, d.reason, d.status, d.sla_deadline, d.created_at,
@@ -284,11 +284,11 @@ disputesRouter.get('/admin/queue', authenticate, requireRole('admin'), async (re
   return res.json(successResponse(rows));
 });
 
-// ── PATCH /disputes/:id/assign ───────────────────────────────────
+// â”€â”€ PATCH /disputes/:id/assign â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 disputesRouter.patch('/:id/assign', authenticate, requireRole('admin'), async (req: Request, res: Response) => {
   await query(
     `UPDATE disputes SET assigned_to = $1, status = 'under_review', updated_at = NOW() WHERE id = $2`,
-    [req.user!.userId, req.params.id]
+    [req.user!.sub, req.params.id]
   );
   return res.json(successResponse({ assigned: true }));
 });

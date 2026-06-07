@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -11,7 +13,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/Header';
-import { inventoryApi, ordersApi, paymentsApi, addressApi, type Address, type Listing } from '@/lib/api';
+import TierVerifyModal from '@/components/TierVerifyModal';
+import { inventoryApi, ordersApi, paymentsApi, addressApi, logisticsApi, type Address, type Listing } from '@/lib/api';
 import { isAuthenticated, getUser } from '@/lib/auth';
 
 const INDIAN_STATES = [
@@ -57,6 +60,8 @@ export default function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
   const [escrowCollapsed, setEscrowCollapsed] = useState(false);
   const [razorpayReady, setRazorpayReady] = useState(false);
+  const [tierModal, setTierModal] = useState<2 | 3 | null>(null);
+  const [tierVerified, setTierVerified] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -113,25 +118,29 @@ export default function CheckoutPage() {
 
   const selectedAddress = addressList.find((a) => a.id === selectedAddressId) ?? null;
 
+  const quantity = quantityParam;
+
   // Fetch freight estimate when platform_logistics selected and address chosen
   const fetchFreightEstimate = useCallback(async () => {
     if (!listing || !selectedAddress) return;
     setLoadingFreight(true);
     try {
-      const sellerState = String((listing as Record<string, unknown>).seller_state ?? (listing as Record<string, unknown>).state ?? '');
-      const buyerState = selectedAddress.state;
-      const res = await fetch(
-        `/api/logistics/freight-estimate?from=${encodeURIComponent(sellerState)}&to=${encodeURIComponent(buyerState)}`
-      );
-      const json = await res.json();
-      const est = json?.data?.amount ?? json?.amount ?? 0;
+      // Rough weight: 0.5 kg per unit, min 0.5 kg
+      const weightKg = Math.max(0.5, Math.ceil(quantity * 0.5));
+      const res = await logisticsApi.getFreightEstimate({
+        origin_pincode: String((listing as Record<string, unknown>).pincode ?? '110001'),
+        dest_pincode: selectedAddress.pincode,
+        weight_kg: weightKg,
+      });
+      const est = res.data?.data?.estimated_cost ?? 0;
       setFreightEstimate(Number(est));
     } catch {
-      setFreightEstimate(500); // fallback estimate
+      setFreightEstimate(null);
+      toast.error('Could not estimate freight. Please try again.');
     } finally {
       setLoadingFreight(false);
     }
-  }, [listing, selectedAddress]);
+  }, [listing, selectedAddress, quantity]);
 
   useEffect(() => {
     if (freightType === 'platform_logistics' && selectedAddress) {
@@ -141,7 +150,6 @@ export default function CheckoutPage() {
 
   // Amount calculations
   const pricePerUnit = Number((listing as Record<string, unknown> | null)?.asking_price ?? (listing as Record<string, unknown> | null)?.price_per_unit ?? 0);
-  const quantity = quantityParam;
   const subtotal = pricePerUnit * quantity;
   const platformFee = (subtotal * PLATFORM_FEE_PCT) / 100;
   const gstOnFee = (platformFee * GST_ON_FEE_PCT) / 100;
@@ -178,6 +186,13 @@ export default function CheckoutPage() {
       toast.error('Payment gateway is loading. Please try again.');
       return;
     }
+
+    // Tier verification gate
+    if (!tierVerified) {
+      if (total >= 10_00_000) { setTierModal(3); return; }
+      if (total >= 1_00_000) { setTierModal(2); return; }
+    }
+
     setPlacing(true);
 
     try {
@@ -283,6 +298,14 @@ export default function CheckoutPage() {
         src="https://checkout.razorpay.com/v1/checkout.js"
         onReady={() => setRazorpayReady(true)}
       />
+      {tierModal && (
+        <TierVerifyModal
+          tier={tierModal}
+          orderAmount={total}
+          onVerified={() => { setTierVerified(true); setTierModal(null); handlePay(); }}
+          onClose={() => setTierModal(null)}
+        />
+      )}
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Header />
         <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
@@ -316,7 +339,7 @@ export default function CheckoutPage() {
                     <p className="text-sm text-gray-500 mt-0.5">
                       {String(l.seller_business_name ?? l.seller_name ?? 'Seller')}
                     </p>
-                    {l.condition_grade && (
+                    {!!l.condition_grade && (
                       <span className="inline-block text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded mt-1">
                         Grade: {String(l.condition_grade)}
                       </span>
@@ -347,13 +370,15 @@ export default function CheckoutPage() {
                     <div className="flex justify-between px-4 py-3 text-gray-600">
                       <span>Freight</span>
                       <span>
-                        {freight === null
-                          ? <span className="text-gray-400 italic">Select freight option</span>
-                          : freight === 0
-                            ? <span className="text-green-600 font-medium">Free</span>
-                            : loadingFreight
-                              ? <span className="text-gray-400">Calculating...</span>
-                              : `₹${freight.toLocaleString('en-IN')}`}
+                        {loadingFreight
+                          ? <span className="text-gray-400">Calculating...</span>
+                          : freight === null && !freightType
+                            ? <span className="text-gray-400 italic">Select freight option</span>
+                            : freight === null && freightType === 'platform_logistics'
+                              ? <span className="text-red-400 italic text-xs">Estimate unavailable</span>
+                              : freight === 0
+                                ? <span className="text-green-600 font-medium">Free</span>
+                                : `₹${(freight ?? 0).toLocaleString('en-IN')}`}
                       </span>
                     </div>
                     <div className="flex justify-between px-4 py-3 bg-gray-50 font-bold text-gray-900 text-base">
@@ -626,7 +651,7 @@ export default function CheckoutPage() {
               <div className="card p-5">
                 <button
                   onClick={handlePay}
-                  disabled={placing || !freightType}
+                  disabled={placing || !freightType || loadingFreight || (freightType === 'platform_logistics' && freightEstimate === null)}
                   className="w-full py-3.5 px-6 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-base rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   {placing ? (

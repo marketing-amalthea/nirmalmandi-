@@ -98,6 +98,38 @@ export default function OrdersPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  function exportCSV() {
+    if (orders.length === 0) { toast.error('No orders to export'); return; }
+    const headers = [
+      'Order Number', 'Date', 'Item', 'Quantity', 'Unit Price (₹)',
+      'Subtotal (₹)', 'Platform Fee (₹)', 'GST (₹)', 'Freight (₹)',
+      'Total (₹)', 'Status', 'Escrow Status', 'Payment Status',
+    ];
+    const rows = orders.map((o) => [
+      o.order_number ?? o.id.slice(0, 8).toUpperCase(),
+      new Date(o.created_at).toLocaleDateString('en-IN'),
+      `"${(o.listing_title ?? '').replace(/"/g, '""')}"`,
+      o.quantity,
+      o.price_per_unit ?? 0,
+      o.subtotal ?? 0,
+      o.platform_fee ?? 0,
+      o.gst_amount ?? 0,
+      o.freight_amount ?? 0,
+      o.total_amount ?? 0,
+      o.status,
+      o.escrow_status ?? '',
+      o.payment_status ?? '',
+    ]);
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nirmalmandi_orders_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleConfirmDelivery(orderId: string, e: React.MouseEvent) {
     e.stopPropagation();
     e.preventDefault();
@@ -117,11 +149,22 @@ export default function OrdersPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
-          <Link href="/listings" className="btn-primary text-sm py-1.5 px-3">
-            Browse Inventory
-          </Link>
+          <div className="flex items-center gap-2">
+            {orders.length > 0 && (
+              <button
+                onClick={exportCSV}
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:border-gray-300 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export CSV
+              </button>
+            )}
+            <Link href="/listings" className="btn-primary text-sm py-1.5 px-3">
+              Browse Inventory
+            </Link>
+          </div>
         </div>
 
         {/* Search */}

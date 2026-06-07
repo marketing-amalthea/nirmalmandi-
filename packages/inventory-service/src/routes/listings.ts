@@ -258,9 +258,10 @@ listingsRouter.post(
   requireRole('buyer'),
   async (req: Request, res: Response) => {
     try {
+      const lPrice = await queryOne<{ asking_price: number }>('SELECT asking_price FROM listings WHERE id = $1', [req.params.id]);
       await query(
-        'INSERT INTO watchlist (id, buyer_id, listing_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
-        [uuidv4(), req.user!.profile_id, req.params.id]
+        'INSERT INTO watchlist (id, buyer_id, listing_id, price_at_save) VALUES ($1,$2,$3,$4) ON CONFLICT (buyer_id, listing_id) DO NOTHING',
+        [uuidv4(), req.user!.profile_id, req.params.id, lPrice?.asking_price ?? null]
       );
       await query('UPDATE listings SET watchlist_count = watchlist_count + 1 WHERE id = $1', [req.params.id]);
       res.json(successResponse({ message: 'Added to watchlist' }));

@@ -256,6 +256,135 @@ function FunnelChart({ funnel }: { funnel: ConversionFunnel }) {
   );
 }
 
+// ── AI Insights Panel ──────────────────────────────────────────────────────────
+function AIInsightsPanel({
+  kpis, funnel, topListings, period,
+}: {
+  kpis: KpiData;
+  funnel: ConversionFunnel;
+  topListings: TopListing[];
+  period: string;
+}) {
+  const [aiInsights, setAiInsights] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
+
+  // Rule-based insights always visible
+  const ruleInsights: { icon: string; title: string; body: string; cta: string; href: string; color: string }[] = [];
+  const totalConvRate = funnel.views > 0 ? (funnel.orders / funnel.views) * 100 : 0;
+  const topListing = topListings[0];
+
+  if (totalConvRate < 2 && funnel.views > 50) {
+    ruleInsights.push({
+      icon: '💡', color: 'border-amber-200 bg-amber-50',
+      title: 'Low conversion rate',
+      body: `Views → orders is ${totalConvRate.toFixed(1)}%. Try a 10–15% price drop or Best Offer to unlock buyers.`,
+      cta: 'Adjust prices', href: '/seller/listings',
+    });
+  }
+  if (topListing && topListing.views > 100 && topListing.orders === 0) {
+    ruleInsights.push({
+      icon: '🔥', color: 'border-red-200 bg-red-50',
+      title: `High traffic, zero orders on "${topListing.title.slice(0, 28)}…"`,
+      body: `${topListing.views.toLocaleString('en-IN')} views but no conversions — price or description needs work.`,
+      cta: 'Edit listing', href: '/seller/listings',
+    });
+  }
+  if (kpis.active_listings > 5 && totalConvRate < 1) {
+    ruleInsights.push({
+      icon: '⚡', color: 'border-blue-200 bg-blue-50',
+      title: 'Flash sale can unlock stuck inventory',
+      body: `${kpis.active_listings} active listings, very low sell-through. A 24h flash sale drives 3–5× normal volume.`,
+      cta: 'Create flash sale', href: '/seller/listings/new',
+    });
+  }
+  if (ruleInsights.length === 0) {
+    ruleInsights.push({
+      icon: '✅', color: 'border-green-200 bg-green-50',
+      title: 'Listings are performing well',
+      body: 'Conversion is healthy. Add more inventory to capitalise on buyer demand.',
+      cta: 'Add inventory', href: '/seller/listings/new',
+    });
+  }
+
+  async function fetchAiInsights() {
+    setLoading(true);
+    setFetched(true);
+    try {
+      const res = await api.post('/ai/seller/insights', {
+        period,
+        revenue: kpis.revenue,
+        orders: kpis.orders,
+        avg_order_value: kpis.avg_order_value,
+        active_listings: kpis.active_listings,
+        funnel_views: funnel.views,
+        funnel_orders: funnel.orders,
+        top_listing_title: topListing?.title ?? '',
+        top_listing_views: topListing?.views ?? 0,
+        top_listing_orders: topListing?.orders ?? 0,
+      });
+      const insight = (res.data as unknown as { data?: { insight?: string } })?.data?.insight ?? '';
+      setAiInsights(insight);
+    } catch {
+      setAiInsights(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🤖</span>
+          <h2 className="text-sm font-semibold text-gray-900">AI Insights — {period}</h2>
+        </div>
+        {!fetched && (
+          <button
+            onClick={fetchAiInsights}
+            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors border border-indigo-200"
+          >
+            <span>✨</span>
+            Ask Claude
+          </button>
+        )}
+      </div>
+
+      {/* Rule-based insights */}
+      {ruleInsights.slice(0, 3).map((ins, i) => (
+        <div key={i} className={`border rounded-xl p-4 mb-3 last:mb-0 ${ins.color}`}>
+          <div className="flex items-start gap-3">
+            <span className="text-xl flex-shrink-0 mt-0.5">{ins.icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 mb-1">{ins.title}</p>
+              <p className="text-xs text-gray-600 leading-relaxed mb-2">{ins.body}</p>
+              <a href={ins.href} className="text-xs font-semibold text-primary-600 hover:underline">{ins.cta} →</a>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {/* Claude AI insight */}
+      {fetched && (
+        <div className="mt-3 border border-indigo-200 bg-indigo-50 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-semibold text-indigo-800">Claude Analysis</span>
+          </div>
+          {loading ? (
+            <div className="flex items-center gap-2 text-xs text-indigo-600">
+              <span className="animate-spin">⟳</span> Analysing your data…
+            </div>
+          ) : aiInsights ? (
+            <p className="text-xs text-indigo-900 leading-relaxed whitespace-pre-wrap">{aiInsights}</p>
+          ) : (
+            <p className="text-xs text-red-500">Could not load AI analysis. Check that ANTHROPIC_API_KEY is set.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Skeleton ───────────────────────────────────────────────────────────────────
 function AnalyticsSkeleton() {
   return (
@@ -437,62 +566,7 @@ export default function SellerAnalyticsPage() {
         </div>
 
         {/* AI Insights Panel */}
-        <div className="card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">🤖</span>
-            <h2 className="text-sm font-semibold text-gray-900">AI Insights — This Week</h2>
-          </div>
-          {(() => {
-            const insights: { icon: string; title: string; body: string; cta: string; href: string; color: string }[] = [];
-            const totalConvRate = funnel.views > 0 ? (funnel.orders / funnel.views) * 100 : 0;
-            const topListing = topListings[0];
-
-            if (totalConvRate < 2 && funnel.views > 50) {
-              insights.push({
-                icon: '💡', color: 'border-amber-200 bg-amber-50',
-                title: 'Low conversion rate',
-                body: `Your views → orders rate is ${totalConvRate.toFixed(1)}%. Consider a 10–15% price drop or enabling Best Offer to accelerate sales.`,
-                cta: 'Adjust prices', href: '/seller/listings',
-              });
-            }
-            if (topListing && topListing.views > 100 && topListing.orders === 0) {
-              insights.push({
-                icon: '🔥', color: 'border-red-200 bg-red-50',
-                title: `"${topListing.title.slice(0, 30)}..." has ${topListing.views.toLocaleString('en-IN')} views but 0 orders`,
-                body: 'High traffic with no conversions usually means price is too high or description needs work.',
-                cta: 'Edit listing', href: `/seller/listings`,
-              });
-            }
-            if (kpi.active_listings > 5 && totalConvRate < 1) {
-              insights.push({
-                icon: '⚡', color: 'border-blue-200 bg-blue-50',
-                title: 'Flash sale could unlock stuck inventory',
-                body: `You have ${kpi.active_listings} active listings with low sell-through. A 24h flash sale creates urgency and often triggers 3–5× normal volume.`,
-                cta: 'Create flash sale', href: '/seller/listings/new',
-              });
-            }
-            if (insights.length === 0) {
-              insights.push({
-                icon: '✅', color: 'border-green-200 bg-green-50',
-                title: 'Listings are performing well',
-                body: 'Your conversion rate is healthy. Consider adding more inventory to capitalise on buyer demand.',
-                cta: 'Add inventory', href: '/seller/listings/new',
-              });
-            }
-            return insights.slice(0, 3).map((ins, i) => (
-              <div key={i} className={`border rounded-xl p-4 mb-3 last:mb-0 ${ins.color}`}>
-                <div className="flex items-start gap-3">
-                  <span className="text-xl flex-shrink-0 mt-0.5">{ins.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 mb-1">{ins.title}</p>
-                    <p className="text-xs text-gray-600 leading-relaxed mb-2">{ins.body}</p>
-                    <a href={ins.href} className="text-xs font-semibold text-primary-600 hover:underline">{ins.cta} →</a>
-                  </div>
-                </div>
-              </div>
-            ));
-          })()}
-        </div>
+        <AIInsightsPanel kpis={kpis} funnel={funnel} topListings={topListings} period={period} />
 
         {/* Buyer Geography */}
         <div className="card overflow-hidden">

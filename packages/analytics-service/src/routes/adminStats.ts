@@ -39,7 +39,7 @@ adminStatsRouter.get('/dashboard', async (_req: Request, res: Response) => {
 
     res.json(successResponse(result));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', 'INTERNAL_ERROR'));
   }
 });
 
@@ -70,7 +70,7 @@ adminStatsRouter.get('/gmv', async (req: Request, res: Response) => {
 
     res.json(successResponse(data));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', 'INTERNAL_ERROR'));
   }
 });
 
@@ -93,7 +93,92 @@ adminStatsRouter.get('/alerts', async (_req: Request, res: Response) => {
       pendingKyc: parseInt((kycTotal[0] as any).total as string, 10) || 0,
     }));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', 'INTERNAL_ERROR'));
+  }
+});
+
+// GET /admin/stats/inventory-heatmap
+adminStatsRouter.get('/inventory-heatmap', async (_req: Request, res: Response) => {
+  try {
+    const rows = await query(`
+      SELECT
+        s.name AS sector,
+        SUM(CASE WHEN l.created_at >= NOW() - INTERVAL '7 days'  THEN 1 ELSE 0 END) AS age_0_7,
+        SUM(CASE WHEN l.created_at >= NOW() - INTERVAL '14 days' AND l.created_at < NOW() - INTERVAL '7 days'  THEN 1 ELSE 0 END) AS age_8_14,
+        SUM(CASE WHEN l.created_at >= NOW() - INTERVAL '30 days' AND l.created_at < NOW() - INTERVAL '14 days' THEN 1 ELSE 0 END) AS age_15_30,
+        SUM(CASE WHEN l.created_at >= NOW() - INTERVAL '60 days' AND l.created_at < NOW() - INTERVAL '30 days' THEN 1 ELSE 0 END) AS age_31_60,
+        SUM(CASE WHEN l.created_at < NOW() - INTERVAL '60 days' THEN 1 ELSE 0 END) AS age_60_plus,
+        COUNT(*) AS total
+      FROM listings l
+      JOIN sectors s ON s.id = l.sector_id
+      WHERE l.status IN ('live','active') AND l.deleted_at IS NULL
+      GROUP BY s.name
+      ORDER BY total DESC
+      LIMIT 15
+    `, []);
+    res.json(successResponse(rows));
+  } catch (err: any) {
+    res.status(500).json(errorResponse(err.message || 'Internal server error', 'INTERNAL_ERROR'));
+  }
+});
+
+// GET /admin/stats/demand-supply
+adminStatsRouter.get('/demand-supply', async (_req: Request, res: Response) => {
+  try {
+    const rows = await query(`
+      SELECT
+        s.name AS sector,
+        COUNT(DISTINCT l.id) AS supply_listings,
+        COALESCE(SUM(l.view_count), 0) AS total_views,
+        COALESCE(SUM(l.watchlist_count), 0) AS total_watchlists,
+        COALESCE(SUM(l.view_count), 0)::float /
+          NULLIF(COUNT(DISTINCT l.id), 0) AS avg_views_per_listing,
+        COUNT(DISTINCT o.id) AS orders_30d
+      FROM sectors s
+      LEFT JOIN listings l ON l.sector_id = s.id AND l.status IN ('live','active') AND l.deleted_at IS NULL
+      LEFT JOIN orders o ON o.listing_id = l.id AND o.created_at >= NOW() - INTERVAL '30 days'
+        AND o.status NOT IN ('cancelled','refunded')
+      GROUP BY s.name
+      HAVING COUNT(DISTINCT l.id) > 0
+      ORDER BY total_views DESC
+      LIMIT 15
+    `, []);
+    res.json(successResponse(rows));
+  } catch (err: any) {
+    res.status(500).json(errorResponse(err.message || 'Internal server error', 'INTERNAL_ERROR'));
+  }
+});
+
+// GET /admin/stats/seller-scorecard?limit=20
+adminStatsRouter.get('/seller-scorecard', async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(50, parseInt((req.query.limit as string) || '20', 10));
+    const rows = await query(`
+      SELECT
+        sp.id,
+        sp.business_name,
+        sp.verification_tier,
+        sp.kyc_status,
+        COUNT(DISTINCT l.id) AS active_listings,
+        COUNT(DISTINCT o.id) AS total_orders,
+        COALESCE(SUM(o.total_amount), 0) AS gmv,
+        ROUND(sp.performance_score::numeric, 1) AS performance_score,
+        ROUND(sp.dispute_rate::numeric * 100, 2) AS dispute_rate_pct,
+        ROUND(sp.fulfillment_rate::numeric * 100, 1) AS fulfillment_rate_pct,
+        ROUND(sp.response_rate::numeric * 100, 1) AS response_rate_pct,
+        sp.created_at
+      FROM seller_profiles sp
+      LEFT JOIN listings l ON l.seller_id = sp.id AND l.status IN ('live','active') AND l.deleted_at IS NULL
+      LEFT JOIN orders o ON o.listing_id IN (SELECT id FROM listings WHERE seller_id = sp.id)
+        AND o.status NOT IN ('cancelled','refunded')
+      WHERE sp.deleted_at IS NULL
+      GROUP BY sp.id
+      ORDER BY gmv DESC
+      LIMIT $1
+    `, [limit]);
+    res.json(successResponse(rows));
+  } catch (err: any) {
+    res.status(500).json(errorResponse(err.message || 'Internal server error', 'INTERNAL_ERROR'));
   }
 });
 
@@ -121,6 +206,6 @@ adminStatsRouter.get('/recent-transactions', async (_req: Request, res: Response
 
     res.json(successResponse(rows));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', 'INTERNAL_ERROR'));
   }
 });

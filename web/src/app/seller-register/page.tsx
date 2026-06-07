@@ -547,7 +547,7 @@ export default function SellerRegisterPage() {
                     }`}>
                       {done ? <Check className="w-3 h-3" /> : i + 1}
                     </div>
-                    <span className="hidden sm:inline">{label}</span>
+                    <span className="hidden lg:inline text-xs max-w-[72px] truncate">{label}</span>
                   </div>
                   {i < STEPS.length - 1 && <div className={`h-0.5 w-4 rounded ${i < step ? 'bg-green-400' : 'bg-gray-200'}`} />}
                 </div>

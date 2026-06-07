@@ -128,6 +128,15 @@ export const categoriesApi = {
     api.patch(`/admin/categories/${id}/toggle`),
 };
 
+export const adminAnalyticsApi = {
+  getInventoryHeatmap: () =>
+    api.get('/admin/stats/inventory-heatmap'),
+  getDemandSupply: () =>
+    api.get('/admin/stats/demand-supply'),
+  getSellerScorecard: (limit = 20) =>
+    api.get(`/admin/stats/seller-scorecard?limit=${limit}`),
+};
+
 export const settingsApi = {
   getSettings: () =>
     api.get('/admin/settings'),

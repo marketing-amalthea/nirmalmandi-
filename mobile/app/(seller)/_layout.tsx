@@ -19,6 +19,7 @@ export default function SellerLayout() {
       <Tabs.Screen name="listings" options={{ title: 'Listings', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📋</Text> }} />
       <Tabs.Screen name="new-listing" options={{ title: 'Add Stock', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>➕</Text> }} />
       <Tabs.Screen name="orders" options={{ title: 'Orders', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📦</Text> }} />
+      <Tabs.Screen name="analytics" options={{ title: 'Analytics', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📈</Text> }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👤</Text> }} />
     </Tabs>
   );

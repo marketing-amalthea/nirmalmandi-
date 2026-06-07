@@ -65,10 +65,10 @@ export default function DataTable<T extends Record<string, unknown>>({
 
   const sortedData = [...data].sort((a, b) => {
     if (!sortKey || !sortDir) return 0;
-    const aVal = a[sortKey];
-    const bVal = b[sortKey];
+    const aVal = (a as Record<string, unknown>)[sortKey];
+    const bVal = (b as Record<string, unknown>)[sortKey];
     if (aVal === bVal) return 0;
-    const cmp = aVal < bVal ? -1 : 1;
+    const cmp = (aVal as string | number) < (bVal as string | number) ? -1 : 1;
     return sortDir === 'asc' ? cmp : -cmp;
   });
 

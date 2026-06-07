@@ -1,73 +1,86 @@
 /** @type {import('next').NextConfig} */
-// Correct port map (matches .env SERVICE_PORT vars):
-// auth=3001 | inventory=3002 | order=3003 | search=3004
-// payment=3005 | notification=3006 | logistics=3007 | analytics=3008
-// invoice=3009 | dispute=3010 | ai=8000
+// Service URLs — set these as env vars in Vercel:
+//   AUTH_SERVICE_URL      INVENTORY_SERVICE_URL  ORDER_SERVICE_URL
+//   SEARCH_SERVICE_URL    PAYMENT_SERVICE_URL    NOTIFICATION_SERVICE_URL
+//   LOGISTICS_SERVICE_URL ANALYTICS_SERVICE_URL  INVOICE_SERVICE_URL
+//   DISPUTE_SERVICE_URL   AI_SERVICE_URL
+const AUTH       = process.env.AUTH_SERVICE_URL        || 'http://localhost:3001';
+const INVENTORY  = process.env.INVENTORY_SERVICE_URL   || 'http://localhost:3002';
+const ORDER      = process.env.ORDER_SERVICE_URL       || 'http://localhost:3003';
+const SEARCH     = process.env.SEARCH_SERVICE_URL      || 'http://localhost:3004';
+const PAYMENT    = process.env.PAYMENT_SERVICE_URL     || 'http://localhost:3005';
+const NOTIF      = process.env.NOTIFICATION_SERVICE_URL|| 'http://localhost:3006';
+const LOGISTICS  = process.env.LOGISTICS_SERVICE_URL   || 'http://localhost:3007';
+const ANALYTICS  = process.env.ANALYTICS_SERVICE_URL   || 'http://localhost:3008';
+const INVOICE    = process.env.INVOICE_SERVICE_URL     || 'http://localhost:3009';
+const DISPUTE    = process.env.DISPUTE_SERVICE_URL     || 'http://localhost:3010';
+const AI         = process.env.AI_SERVICE_URL          || 'http://localhost:8000';
+
 module.exports = {
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
   async rewrites() {
     return [
-      // ── Auth service (3001) ──────────────────────────────────────────────
-      { source: '/api/auth/:path*',              destination: 'http://localhost:3001/auth/:path*' },
-      { source: '/api/profile/:path*',           destination: 'http://localhost:3001/profile/:path*' },
-      // User addresses + referral live on auth profile routes
-      { source: '/api/user/addresses',           destination: 'http://localhost:3001/profile/addresses' },
-      { source: '/api/user/addresses/:path*',    destination: 'http://localhost:3001/profile/addresses/:path*' },
-      { source: '/api/referral/stats',           destination: 'http://localhost:3001/profile/referral' },
-      { source: '/api/referral/:path*',          destination: 'http://localhost:3001/profile/referral/:path*' },
+      // ── Auth service ─────────────────────────────────────────────────────
+      { source: '/api/auth/:path*',              destination: `${AUTH}/auth/:path*` },
+      { source: '/api/profile/:path*',           destination: `${AUTH}/profile/:path*` },
+      { source: '/api/user/addresses',           destination: `${AUTH}/profile/addresses` },
+      { source: '/api/user/addresses/:path*',    destination: `${AUTH}/profile/addresses/:path*` },
+      { source: '/api/referral/stats',           destination: `${AUTH}/profile/referral` },
+      { source: '/api/referral/:path*',          destination: `${AUTH}/profile/referral/:path*` },
 
-      // ── Inventory service (3002) ─────────────────────────────────────────
-      // Service mounts at /listings and /sectors (no /inventory prefix on the service)
-      { source: '/api/inventory/listings/:path*',  destination: 'http://localhost:3002/listings/:path*' },
-      { source: '/api/inventory/listings',         destination: 'http://localhost:3002/listings' },
-      { source: '/api/inventory/sectors/:path*',   destination: 'http://localhost:3002/sectors/:path*' },
-      { source: '/api/inventory/sectors',          destination: 'http://localhost:3002/sectors' },
-      { source: '/api/inventory/images/:path*',    destination: 'http://localhost:3002/images/:path*' },
-      // Seller listing management (inventory /seller routes)
-      { source: '/api/seller/listings/:path*',     destination: 'http://localhost:3002/seller/listings/:path*' },
-      { source: '/api/seller/listings',            destination: 'http://localhost:3002/seller/listings' },
-      // Buyer watchlist (inventory /listings/:id/watchlist)
-      { source: '/api/buyer/watchlist',            destination: 'http://localhost:3002/buyer/watchlist' },
-      { source: '/api/buyer/:path*',               destination: 'http://localhost:3002/buyer/:path*' },
+      // ── Inventory service ────────────────────────────────────────────────
+      { source: '/api/inventory/listings/:path*',  destination: `${INVENTORY}/listings/:path*` },
+      { source: '/api/inventory/listings',         destination: `${INVENTORY}/listings` },
+      { source: '/api/inventory/sectors/:path*',   destination: `${INVENTORY}/sectors/:path*` },
+      { source: '/api/inventory/sectors',          destination: `${INVENTORY}/sectors` },
+      { source: '/api/inventory/images/:path*',    destination: `${INVENTORY}/images/:path*` },
+      { source: '/api/seller/listings/:path*',     destination: `${INVENTORY}/seller/listings/:path*` },
+      { source: '/api/seller/listings',            destination: `${INVENTORY}/seller/listings` },
+      { source: '/api/buyer/watchlist',            destination: `${INVENTORY}/buyer/watchlist` },
+      { source: '/api/buyer/:path*',               destination: `${INVENTORY}/buyer/:path*` },
 
-      // ── Order service (3003) ─────────────────────────────────────────────
-      { source: '/api/orders/:path*',              destination: 'http://localhost:3003/orders/:path*' },
-      { source: '/api/orders',                     destination: 'http://localhost:3003/orders' },
-      { source: '/api/cart/:path*',                destination: 'http://localhost:3003/cart/:path*' },
-      { source: '/api/cart',                       destination: 'http://localhost:3003/cart' },
-      { source: '/api/negotiations/:path*',        destination: 'http://localhost:3003/negotiations/:path*' },
-      { source: '/api/negotiations',               destination: 'http://localhost:3003/negotiations' },
+      // ── Order service ────────────────────────────────────────────────────
+      { source: '/api/orders/:path*',              destination: `${ORDER}/orders/:path*` },
+      { source: '/api/orders',                     destination: `${ORDER}/orders` },
+      { source: '/api/cart/:path*',                destination: `${ORDER}/cart/:path*` },
+      { source: '/api/cart',                       destination: `${ORDER}/cart` },
+      { source: '/api/negotiations/:path*',        destination: `${ORDER}/negotiations/:path*` },
+      { source: '/api/negotiations',               destination: `${ORDER}/negotiations` },
 
-      // ── Search service (3004) ────────────────────────────────────────────
-      { source: '/api/search/:path*',              destination: 'http://localhost:3004/search/:path*' },
+      // ── Search service ───────────────────────────────────────────────────
+      { source: '/api/search/:path*',              destination: `${SEARCH}/search/:path*` },
 
-      // ── Payment service (3005) ───────────────────────────────────────────
-      { source: '/api/payments/:path*',            destination: 'http://localhost:3005/payments/:path*' },
-      { source: '/api/payments',                   destination: 'http://localhost:3005/payments' },
+      // ── Payment service ──────────────────────────────────────────────────
+      { source: '/api/payments/:path*',            destination: `${PAYMENT}/payments/:path*` },
+      { source: '/api/payments',                   destination: `${PAYMENT}/payments` },
 
-      // ── Notification service (3006) ──────────────────────────────────────
-      { source: '/api/notifications/:path*',       destination: 'http://localhost:3006/notifications/:path*' },
-      { source: '/api/notifications',              destination: 'http://localhost:3006/notifications' },
+      // ── Notification service ─────────────────────────────────────────────
+      { source: '/api/notifications/:path*',       destination: `${NOTIF}/notifications/:path*` },
+      { source: '/api/notifications',              destination: `${NOTIF}/notifications` },
 
-      // ── Logistics service (3007) ─────────────────────────────────────────
-      { source: '/api/logistics/:path*',           destination: 'http://localhost:3007/logistics/:path*' },
+      // ── Logistics service ────────────────────────────────────────────────
+      { source: '/api/logistics/freight/:path*',   destination: `${LOGISTICS}/freight/:path*` },
+      { source: '/api/logistics/shipments/:path*', destination: `${LOGISTICS}/shipments/:path*` },
 
-      // ── Analytics service (3008) ─────────────────────────────────────────
-      // Seller dashboard + analytics live here
-      { source: '/api/seller/dashboard',           destination: 'http://localhost:3008/seller/dashboard' },
-      { source: '/api/seller/analytics',           destination: 'http://localhost:3008/seller/analytics' },
-      { source: '/api/seller/:path*',              destination: 'http://localhost:3008/seller/:path*' },
-      { source: '/api/analytics/:path*',           destination: 'http://localhost:3008/analytics/:path*' },
+      // ── Analytics service ────────────────────────────────────────────────
+      { source: '/api/seller/dashboard',                        destination: `${ANALYTICS}/seller/dashboard` },
+      { source: '/api/seller/analytics',                        destination: `${ANALYTICS}/seller/analytics` },
+      { source: '/api/seller/listings/:id/performance',         destination: `${ANALYTICS}/seller/listings/:id/performance` },
+      { source: '/api/seller/:path*',                           destination: `${ANALYTICS}/seller/:path*` },
+      { source: '/api/analytics/:path*',           destination: `${ANALYTICS}/analytics/:path*` },
 
-      // ── Invoice service (3009) ───────────────────────────────────────────
-      { source: '/api/invoices/:path*',            destination: 'http://localhost:3009/invoices/:path*' },
-      { source: '/api/invoices',                   destination: 'http://localhost:3009/invoices' },
+      // ── Invoice service ──────────────────────────────────────────────────
+      { source: '/api/invoices/:path*',            destination: `${INVOICE}/invoices/:path*` },
+      { source: '/api/invoices',                   destination: `${INVOICE}/invoices` },
 
-      // ── Dispute service (3010) ───────────────────────────────────────────
-      { source: '/api/disputes/:path*',            destination: 'http://localhost:3010/disputes/:path*' },
-      { source: '/api/disputes',                   destination: 'http://localhost:3010/disputes' },
+      // ── Dispute service ──────────────────────────────────────────────────
+      { source: '/api/disputes/:path*',            destination: `${DISPUTE}/disputes/:path*` },
+      { source: '/api/disputes',                   destination: `${DISPUTE}/disputes` },
 
-      // ── AI service (8000) ────────────────────────────────────────────────
-      { source: '/api/ai/:path*',                  destination: 'http://localhost:8000/:path*' },
+      // ── AI service ───────────────────────────────────────────────────────
+      { source: '/api/ai/:path*',                  destination: `${AI}/:path*` },
     ];
   },
 

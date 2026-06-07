@@ -429,19 +429,19 @@ export default function ListingDetailPage() {
             {/* Quick stats */}
             <div className="card p-4">
               <div className="space-y-2 text-sm">
-                {l.moq && Number(l.moq) > 1 && (
+                {!!l.moq && Number(l.moq) > 1 && (
                   <div className="flex justify-between text-gray-600">
                     <span>Min. Order Qty</span>
                     <span className="font-medium">{Number(l.moq).toLocaleString('en-IN')} {listingUnit}</span>
                   </div>
                 )}
-                {l.lot_type && (
+                {!!l.lot_type && (
                   <div className="flex justify-between text-gray-600">
                     <span>Lot Type</span>
                     <span className="font-medium capitalize">{String(l.lot_type)}</span>
                   </div>
                 )}
-                {l.dead_stock_type && (
+                {!!l.dead_stock_type && (
                   <div className="flex justify-between text-gray-600">
                     <span>Stock Type</span>
                     <span className="font-medium capitalize">{String(l.dead_stock_type).replace(/_/g, ' ')}</span>

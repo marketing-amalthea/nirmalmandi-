@@ -332,6 +332,54 @@ export default function SettingsPage() {
         />
       </SettingsSection>
 
+      {/* Section: KPI Alert Thresholds */}
+      <SettingsSection icon={AlertCircle} title="KPI Alert Thresholds">
+        <SettingField
+          label="GMV Drop Alert (%)"
+          description="Trigger alert when weekly GMV drops by this % WoW"
+          type="number"
+          min="1" max="100" step="1"
+          placeholder="20"
+          value={get('alert_gmv_drop_pct')}
+          onChange={set('alert_gmv_drop_pct')}
+        />
+        <SettingField
+          label="Dispute Rate Alert (%)"
+          description="Flag sellers whose dispute rate exceeds this %"
+          type="number"
+          min="0" max="100" step="0.5"
+          placeholder="5"
+          value={get('alert_dispute_rate_pct')}
+          onChange={set('alert_dispute_rate_pct')}
+        />
+        <SettingField
+          label="Inventory Aging Alert (days)"
+          description="Flag listings that haven't sold after this many days"
+          type="number"
+          min="7" max="180" step="1"
+          placeholder="30"
+          value={get('alert_aging_days')}
+          onChange={set('alert_aging_days')}
+        />
+        <SettingField
+          label="Low CVR Alert (%)"
+          description="Alert when seller's conversion rate drops below this %"
+          type="number"
+          min="0" max="20" step="0.5"
+          placeholder="1"
+          value={get('alert_low_cvr_pct')}
+          onChange={set('alert_low_cvr_pct')}
+        />
+        <SettingField
+          label="Weekly Report Recipients"
+          description="Comma-separated emails — receives Monday 8AM IST auto-report"
+          type="email"
+          placeholder="admin@nirmalmandi.com, cfo@nirmalmandi.com"
+          value={get('weekly_report_emails')}
+          onChange={set('weekly_report_emails')}
+        />
+      </SettingsSection>
+
       {/* Section: Maintenance */}
       <SettingsSection icon={Wrench} title="Maintenance">
         <SettingField

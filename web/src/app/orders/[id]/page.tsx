@@ -59,6 +59,90 @@ function getStageIndex(status: string): number {
   return map[status] ?? 0;
 }
 
+// ── Live Tracking Card ─────────────────────────────────────────────────────────
+const TRACKING_STAGES = [
+  { key: 'booked',           label: 'Booked',             icon: '📋' },
+  { key: 'picked_up',        label: 'Picked Up',          icon: '📦' },
+  { key: 'in_transit',       label: 'In Transit',         icon: '🚚' },
+  { key: 'out_for_delivery', label: 'Out for Delivery',   icon: '🛵' },
+  { key: 'delivered',        label: 'Delivered',          icon: '✅' },
+];
+const STAGE_ORDER = TRACKING_STAGES.map((s) => s.key);
+
+function LiveTrackingCard({ orderId, order }: { orderId: string; order: import('@/lib/api').OrderDetail }) {
+  const { data: shipment } = useQuery({
+    queryKey: ['shipment', orderId],
+    queryFn: () =>
+      fetch(`/api/logistics/shipments/order/${orderId}`, {
+        headers: { Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('nm_access_token') ?? '' : ''}` },
+      }).then((r) => r.json()).then((j) => j?.data ?? null),
+    refetchInterval: 60_000,
+    retry: 1,
+  });
+
+  const currentStatus: string = (shipment as { status?: string } | null)?.status ?? (order.status === 'shipped' ? 'in_transit' : order.status);
+  const currentIdx = STAGE_ORDER.indexOf(currentStatus);
+
+  const awb = (shipment as { awb_number?: string } | null)?.awb_number ?? order.awb_number;
+  const trackingUrl = (shipment as { tracking_url?: string } | null)?.tracking_url ?? order.tracking_url;
+  const provider = (shipment as { logistics_provider?: string } | null)?.logistics_provider ?? order.carrier;
+
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <Truck className="w-4 h-4 text-primary-600" />
+          Live Tracking
+        </h2>
+        {trackingUrl && (
+          <a
+            href={trackingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs font-medium text-primary-600 border border-primary-200 rounded-lg px-2.5 py-1 hover:bg-primary-50 transition-colors"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Open Tracker
+          </a>
+        )}
+      </div>
+
+      {/* Stage progress */}
+      <div className="flex items-center gap-0 mb-4 overflow-x-auto">
+        {TRACKING_STAGES.map((stage, i) => {
+          const done = currentIdx >= i;
+          const active = currentIdx === i;
+          return (
+            <div key={stage.key} className="flex items-center flex-shrink-0">
+              <div className={`flex flex-col items-center gap-1 ${active ? 'scale-110' : ''} transition-transform`}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base border-2 transition-colors ${
+                  done ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white border-gray-200 text-gray-400'
+                }`}>
+                  {stage.icon}
+                </div>
+                <p className={`text-[9px] font-semibold text-center leading-tight max-w-[60px] ${
+                  done ? 'text-primary-700' : 'text-gray-400'
+                }`}>{stage.label}</p>
+              </div>
+              {i < TRACKING_STAGES.length - 1 && (
+                <div className={`h-0.5 w-8 mx-1 flex-shrink-0 mb-4 ${currentIdx > i ? 'bg-primary-600' : 'bg-gray-200'}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+        {awb && <p><span className="font-medium">AWB:</span> {awb}</p>}
+        {provider && <p><span className="font-medium">Carrier:</span> {String(provider)}</p>}
+        {(shipment as { expected_delivery?: string } | null)?.expected_delivery && (
+          <p><span className="font-medium">Expected:</span> {formatDate((shipment as { expected_delivery: string }).expected_delivery)}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CancelModal({ onConfirm, onCancel, loading }: { onConfirm: () => void; onCancel: () => void; loading: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -364,39 +448,9 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Shipment info */}
-            {(order.awb_number || order.carrier) && (
-              <div className="card p-5">
-                <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-primary-600" />
-                  Shipment Details
-                </h2>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="space-y-1 text-sm">
-                    {order.awb_number && (
-                      <p className="text-gray-600">
-                        <span className="font-medium">AWB:</span> {order.awb_number}
-                      </p>
-                    )}
-                    {order.carrier && (
-                      <p className="text-gray-600">
-                        <span className="font-medium">Carrier:</span> {order.carrier}
-                      </p>
-                    )}
-                  </div>
-                  {order.tracking_url && (
-                    <a
-                      href={order.tracking_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 border border-primary-200 rounded-lg px-3 py-1.5 hover:bg-primary-50 transition-colors"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Open Tracking
-                    </a>
-                  )}
-                </div>
-              </div>
+            {/* Live shipment tracking */}
+            {['shipped', 'in_transit', 'out_for_delivery', 'delivered'].includes(order.status) && (
+              <LiveTrackingCard orderId={id} order={order} />
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

@@ -35,6 +35,12 @@ const DEFAULTS: Record<string, string> = {
   enable_seller_registration: 'true',
   enable_whatsapp_notifications: 'true',
   maintenance_mode: 'false',
+  // KPI alert thresholds
+  alert_gmv_drop_pct: '20',          // % WoW GMV drop triggers alert
+  alert_dispute_rate_pct: '5',        // % dispute rate per seller triggers flag
+  alert_aging_days: '30',             // days before listing flagged as aging
+  alert_low_cvr_pct: '1',             // % CVR below which alert fires
+  weekly_report_emails: '',           // comma-separated admin emails for Monday report
 };
 
 async function ensureTable(): Promise<void> {

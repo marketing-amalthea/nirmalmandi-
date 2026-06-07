@@ -7,7 +7,7 @@ export const adminOrdersRouter = Router();
 function requireAdmin(req: Request, res: Response, next: () => void): void {
   const role = (req as any).user?.role;
   if (role !== 'admin' && role !== 'super_admin') {
-    res.status(403).json(errorResponse('Forbidden: admin access required', 403));
+    res.status(403).json(errorResponse('Forbidden: admin access required', String(403)));
     return;
   }
   next();
@@ -78,7 +78,7 @@ adminOrdersRouter.get('/', authenticate, requireAdmin as any, async (req: Reques
 
     res.json(successResponse({ rows, total }));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });
 
@@ -107,12 +107,12 @@ adminOrdersRouter.get('/:id', authenticate, requireAdmin as any, async (req: Req
       [id]
     );
     if (!order) {
-      res.status(404).json(errorResponse('Order not found', 404));
+      res.status(404).json(errorResponse('Order not found', String(404)));
       return;
     }
     res.json(successResponse(order));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });
 
@@ -125,12 +125,12 @@ adminOrdersRouter.patch('/:id/escrow/freeze', authenticate, requireAdmin as any,
       [id]
     );
     if (!order) {
-      res.status(404).json(errorResponse('Order not found', 404));
+      res.status(404).json(errorResponse('Order not found', String(404)));
       return;
     }
     res.json(successResponse(order));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });
 
@@ -143,11 +143,11 @@ adminOrdersRouter.patch('/:id/escrow/release', authenticate, requireAdmin as any
       [id]
     );
     if (!order) {
-      res.status(404).json(errorResponse('Order not found', 404));
+      res.status(404).json(errorResponse('Order not found', String(404)));
       return;
     }
     res.json(successResponse(order));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });

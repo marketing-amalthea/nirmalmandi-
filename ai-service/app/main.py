@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 import logging
 import time
 
-from app.routers import listing, marketing, agent, pricing
+from app.routers import listing, marketing, agent, pricing, seller as seller_router
 from app.services.ai_logger import log_ai_error
 
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +40,7 @@ app.include_router(listing.router, prefix="/ai/listing", tags=["Listing AI"])
 app.include_router(marketing.router, prefix="/ai/content", tags=["Marketing AI"])
 app.include_router(agent.router, prefix="/ai/agent", tags=["AI Agent"])
 app.include_router(pricing.router, prefix="/ai/pricing", tags=["Pricing AI"])
+app.include_router(seller_router.router, prefix="/ai/seller", tags=["Seller AI"])
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

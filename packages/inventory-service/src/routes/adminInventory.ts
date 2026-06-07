@@ -7,7 +7,7 @@ export const adminInventoryRouter = Router();
 function requireAdmin(req: Request, res: Response, next: () => void): void {
   const role = (req as any).user?.role;
   if (role !== 'admin' && role !== 'super_admin') {
-    res.status(403).json(errorResponse('Forbidden: admin access required', 403));
+    res.status(403).json(errorResponse('Forbidden: admin access required', '403'));
     return;
   }
   next();
@@ -74,7 +74,7 @@ adminInventoryRouter.get('/', authenticate, requireAdmin as any, async (req: Req
 
     res.json(successResponse({ rows, total }));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', '500'));
   }
 });
 
@@ -87,12 +87,12 @@ adminInventoryRouter.patch('/:id/feature', authenticate, requireAdmin as any, as
       [id]
     );
     if (!listing) {
-      res.status(404).json(errorResponse('Listing not found', 404));
+      res.status(404).json(errorResponse('Listing not found', '404'));
       return;
     }
     res.json(successResponse(listing));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', '500'));
   }
 });
 
@@ -105,12 +105,12 @@ adminInventoryRouter.patch('/:id/unfeature', authenticate, requireAdmin as any, 
       [id]
     );
     if (!listing) {
-      res.status(404).json(errorResponse('Listing not found', 404));
+      res.status(404).json(errorResponse('Listing not found', '404'));
       return;
     }
     res.json(successResponse(listing));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', '500'));
   }
 });
 
@@ -123,12 +123,12 @@ adminInventoryRouter.patch('/:id/pause', authenticate, requireAdmin as any, asyn
       [id]
     );
     if (!listing) {
-      res.status(404).json(errorResponse('Listing not found', 404));
+      res.status(404).json(errorResponse('Listing not found', '404'));
       return;
     }
     res.json(successResponse(listing));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', '500'));
   }
 });
 
@@ -141,12 +141,12 @@ adminInventoryRouter.patch('/:id/delist', authenticate, requireAdmin as any, asy
       [id]
     );
     if (!listing) {
-      res.status(404).json(errorResponse('Listing not found', 404));
+      res.status(404).json(errorResponse('Listing not found', '404'));
       return;
     }
     res.json(successResponse(listing));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', '500'));
   }
 });
 
@@ -156,11 +156,11 @@ adminInventoryRouter.post('/bulk', authenticate, requireAdmin as any, async (req
     const { ids, action } = req.body as { ids?: string[]; action?: string };
 
     if (!Array.isArray(ids) || ids.length === 0) {
-      res.status(400).json(errorResponse('ids must be a non-empty array', 400));
+      res.status(400).json(errorResponse('ids must be a non-empty array', '400'));
       return;
     }
     if (!action) {
-      res.status(400).json(errorResponse('action is required', 400));
+      res.status(400).json(errorResponse('action is required', '400'));
       return;
     }
 
@@ -184,13 +184,13 @@ adminInventoryRouter.post('/bulk', authenticate, requireAdmin as any, async (req
         sql = `UPDATE listings SET status = 'active', updated_at = NOW() WHERE id IN (${placeholders})`;
         break;
       default:
-        res.status(400).json(errorResponse(`Unknown action: ${action}`, 400));
+        res.status(400).json(errorResponse(`Unknown action: ${action}`, '400'));
         return;
     }
 
     await query(sql, ids);
     res.json(successResponse({ updated: ids.length, action }));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', '500'));
   }
 });

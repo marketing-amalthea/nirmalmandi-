@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/Header';
-import { referralApi, type ReferralEntry, type ReferralPayout } from '@/lib/api';
+import { referralApi, type ReferralEntry, type ReferralPayout, type ReferralStats } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
 
 type Tier = 'silver' | 'gold' | 'platinum';
@@ -104,9 +104,10 @@ export default function ReferralPage() {
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ['referral-stats'],
     queryFn: () => referralApi.getStats(),
-    select: (res) => {
-      const payload = res.data as unknown as { data?: typeof res.data } | typeof res.data;
-      return (payload as { data?: typeof res.data })?.data ?? payload;
+    select: (res): ReferralStats => {
+      const raw = res.data as unknown;
+      const wrapped = raw as { data?: ReferralStats };
+      return wrapped.data ?? (raw as ReferralStats);
     },
     enabled: isAuthenticated(),
   });
@@ -199,6 +200,26 @@ export default function ReferralPage() {
                 <Share2 className="w-3.5 h-3.5" />
                 WhatsApp
               </a>
+            </div>
+          </div>
+
+          {/* QR Code */}
+          <div className="mt-4 flex items-center gap-4">
+            <div className="bg-white rounded-xl p-2 flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(stats.link)}&bgcolor=ffffff&color=1e1b4b`}
+                alt="Referral QR Code"
+                width={100}
+                height={100}
+                className="rounded-lg"
+              />
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm mb-1">Scan to share</p>
+              <p className="text-indigo-200 text-xs leading-relaxed">
+                Show this QR at trade fairs, expos,<br />or WhatsApp it to buyers directly.
+              </p>
             </div>
           </div>
         </div>

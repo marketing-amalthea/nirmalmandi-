@@ -311,6 +311,29 @@ export const aiApi = {
   }) => api.post<{ success: boolean; data: { hook: string } }>('/ai/content/hook', data),
 };
 
+// ── Logistics ─────────────────────────────────────────────────────────────────
+export const logisticsApi = {
+  getFreightEstimate: (params: {
+    origin_pincode: string;
+    dest_pincode: string;
+    weight_kg: number;
+    cod?: boolean;
+    order_amount?: number;
+  }) =>
+    api.get<{
+      success: boolean;
+      data: { estimated_cost: number; estimated_days: number; provider: string; cod_available: boolean };
+    }>('/logistics/freight/estimate', {
+      params: {
+        origin_pincode: params.origin_pincode,
+        dest_pincode: params.dest_pincode,
+        weight_kg: params.weight_kg,
+        cod: params.cod ? 'true' : 'false',
+        ...(params.order_amount ? { order_amount: params.order_amount } : {}),
+      },
+    }),
+};
+
 // ── Shared types ──────────────────────────────────────────────────────────────
 export interface Listing {
   id: string;

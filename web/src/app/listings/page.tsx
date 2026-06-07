@@ -1,10 +1,14 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Search, SlidersHorizontal, X, Loader2, Bookmark, ChevronDown } from 'lucide-react';
+import { toast } from 'sonner';
 import Header from '@/components/Header';
 import ListingCard from '@/components/ListingCard';
+import CompareDrawer from '@/components/CompareDrawer';
 import { inventoryApi, type Sector, type Listing } from '@/lib/api';
 
 const SORT_OPTIONS = [
@@ -287,6 +291,18 @@ export default function ListingsPage() {
     setSavedSearches(updated);
   }
 
+  // ── Compare state ─────────────────────────────────────────────────────────────
+  const [compareList, setCompareList] = useState<Listing[]>([]);
+
+  function handleCompareToggle(listing: Listing) {
+    setCompareList((prev) => {
+      const exists = prev.find((l) => l.id === listing.id);
+      if (exists) return prev.filter((l) => l.id !== listing.id);
+      if (prev.length >= 3) { toast.error('Max 3 listings can be compared at once'); return prev; }
+      return [...prev, listing];
+    });
+  }
+
   // ── Derived state ─────────────────────────────────────────────────────────────
   const hasActiveFilters = !!(
     applied.search || applied.sector || applied.minPrice || applied.maxPrice ||
@@ -339,13 +355,14 @@ export default function ListingsPage() {
                   toast.error('Voice search not supported in this browser');
                   return;
                 }
-                const SR = (window as unknown as { SpeechRecognition?: new() => SpeechRecognition; webkitSpeechRecognition?: new() => SpeechRecognition }).SpeechRecognition
-                  ?? (window as unknown as { webkitSpeechRecognition?: new() => SpeechRecognition }).webkitSpeechRecognition;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const SR = ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition) as (new () => any) | undefined;
                 if (!SR) return;
                 const recognition = new SR();
                 recognition.lang = 'hi-IN';
                 recognition.interimResults = false;
-                recognition.onresult = (e: SpeechRecognitionEvent) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                recognition.onresult = (e: any) => {
                   const transcript = e.results[0][0].transcript;
                   setSearch(transcript);
                   applyFilters();
@@ -679,7 +696,12 @@ export default function ListingsPage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {listings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  compareSelected={compareList.some((l) => l.id === listing.id)}
+                  onCompareToggle={handleCompareToggle}
+                />
               ))}
             </div>
 
@@ -711,6 +733,12 @@ export default function ListingsPage() {
           </>
         )}
       </main>
+
+      <CompareDrawer
+        listings={compareList}
+        onRemove={(id) => setCompareList((prev) => prev.filter((l) => l.id !== id))}
+        onClear={() => setCompareList([])}
+      />
     </div>
   );
 }

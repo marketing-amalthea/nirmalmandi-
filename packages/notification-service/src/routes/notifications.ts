@@ -35,7 +35,7 @@ notificationsRouter.post('/send', async (req: Request, res: Response) => {
     return res.status(403).json(errorResponse('Forbidden'));
   }
   const parsed = enqueueSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', parsed.error.issues));
+  if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', 'VALIDATION_ERROR', parsed.error.issues));
 
   const { delay, ...jobData } = parsed.data;
 

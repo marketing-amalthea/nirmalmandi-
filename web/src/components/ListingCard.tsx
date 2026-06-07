@@ -7,6 +7,8 @@ import clsx from 'clsx';
 
 interface Props {
   listing: Listing;
+  compareSelected?: boolean;
+  onCompareToggle?: (listing: Listing) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -24,7 +26,7 @@ const GRADE_COLORS: Record<string, string> = {
   D: 'bg-red-500',
 };
 
-export default function ListingCard({ listing }: Props) {
+export default function ListingCard({ listing, compareSelected, onCompareToggle }: Props) {
   const askingPrice = listing.price_per_unit ?? listing.asking_price ?? 0;
   const mrp: number | undefined = (listing as unknown as Record<string, unknown>).mrp as number | undefined;
 
@@ -51,6 +53,20 @@ export default function ListingCard({ listing }: Props) {
   const urgencyDays = listing.urgency_days ?? 0;
 
   return (
+    <div className="relative">
+    {/* Compare checkbox */}
+    {onCompareToggle && (
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCompareToggle(listing); }}
+        className={`absolute top-2 right-2 z-10 flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border transition-colors ${
+          compareSelected
+            ? 'bg-nm-primary text-white border-nm-primary'
+            : 'bg-white/90 text-gray-600 border-gray-300 hover:border-nm-primary hover:text-nm-primary'
+        }`}
+      >
+        {compareSelected ? '✓ Added' : '+ Compare'}
+      </button>
+    )}
     <Link
       href={`/listings/${listing.id}`}
       className="card block hover:shadow-md transition-shadow duration-150 group relative"
@@ -151,5 +167,6 @@ export default function ListingCard({ listing }: Props) {
         )}
       </div>
     </Link>
+    </div>
   );
 }

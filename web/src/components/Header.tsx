@@ -78,7 +78,7 @@ export default function Header() {
               Browse Deals
             </Link>
             {(!user || !isSeller) && (
-              <Link href="/seller/register" className="text-sm text-nm-text-muted dark:text-nm-text-dark-muted hover:text-nm-primary font-medium transition-colors">
+              <Link href="/seller-register" className="text-sm text-nm-text-muted dark:text-nm-text-dark-muted hover:text-nm-primary font-medium transition-colors">
                 Sell on NirmalMandi
               </Link>
             )}
@@ -147,7 +147,7 @@ export default function Header() {
                 <Link href="/login" className="nm-btn-secondary text-sm py-1.5 px-3">
                   Login
                 </Link>
-                <Link href="/seller/register" className="nm-btn-seller text-sm py-1.5 px-3">
+                <Link href="/seller-register" className="nm-btn-seller text-sm py-1.5 px-3">
                   Sell Now
                 </Link>
               </>

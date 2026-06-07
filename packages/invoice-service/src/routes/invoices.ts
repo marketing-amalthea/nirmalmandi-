@@ -138,7 +138,7 @@ invoicesRouter.get('/:orderId', authenticate, async (req: Request, res: Response
   );
   if (!order) return res.status(404).json(errorResponse('Order not found'));
 
-  const isParty = [order.buyer_id, order.seller_id].includes(req.user!.userId);
+  const isParty = [order.buyer_id, order.seller_id].includes(req.user!.profile_id);
   const isAdmin = req.user!.role === 'admin';
   if (!isParty && !isAdmin) return res.status(403).json(errorResponse('Forbidden'));
   if (!order.invoice_url) return res.status(404).json(errorResponse('Invoice not yet generated'));

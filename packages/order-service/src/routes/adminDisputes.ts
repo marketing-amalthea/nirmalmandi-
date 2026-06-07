@@ -7,7 +7,7 @@ export const adminDisputesRouter = Router();
 function requireAdmin(req: Request, res: Response, next: () => void): void {
   const role = (req as any).user?.role;
   if (role !== 'admin' && role !== 'super_admin') {
-    res.status(403).json(errorResponse('Forbidden: admin access required', 403));
+    res.status(403).json(errorResponse('Forbidden: admin access required', String(403)));
     return;
   }
   next();
@@ -69,7 +69,7 @@ adminDisputesRouter.get('/', authenticate, requireAdmin as any, async (req: Requ
 
     res.json(successResponse({ rows, total }));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });
 
@@ -91,12 +91,12 @@ adminDisputesRouter.get('/:id', authenticate, requireAdmin as any, async (req: R
       [id]
     );
     if (!dispute) {
-      res.status(404).json(errorResponse('Dispute not found', 404));
+      res.status(404).json(errorResponse('Dispute not found', String(404)));
       return;
     }
     res.json(successResponse(dispute));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });
 
@@ -111,7 +111,7 @@ adminDisputesRouter.post('/:id/resolve', authenticate, requireAdmin as any, asyn
     };
 
     if (!resolution) {
-      res.status(400).json(errorResponse('resolution is required', 400));
+      res.status(400).json(errorResponse('resolution is required', String(400)));
       return;
     }
 
@@ -128,11 +128,11 @@ adminDisputesRouter.post('/:id/resolve', authenticate, requireAdmin as any, asyn
       [id, resolution, notes || null, winningSide || null]
     );
     if (!dispute) {
-      res.status(404).json(errorResponse('Dispute not found', 404));
+      res.status(404).json(errorResponse('Dispute not found', String(404)));
       return;
     }
     res.json(successResponse(dispute));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });

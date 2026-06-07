@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Client } from '@elastic/elasticsearch';
+import type { QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -87,7 +88,7 @@ searchRouter.get('/', async (req: Request, res: Response) => {
     boolQuery.must = { match_all: {} };
   }
 
-  const esQuery = {
+  const esQuery: QueryDslQueryContainer = {
     function_score: {
       query: { bool: boolQuery },
       functions: [
@@ -130,7 +131,7 @@ searchRouter.get('/', async (req: Request, res: Response) => {
         : esResponse.hits.total ?? 0;
 
     const hits = esResponse.hits.hits.map((h) => ({
-      ...h._source,
+      ...(h._source as Record<string, unknown>),
       _score: h._score,
     }));
 

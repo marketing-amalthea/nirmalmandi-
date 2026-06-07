@@ -44,7 +44,7 @@ const initiateSchema = z.object({
 
 paymentsRouter.post('/initiate', authenticate, async (req: Request, res: Response) => {
   const parsed = initiateSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', parsed.error.issues));
+  if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', 'VALIDATION_ERROR', parsed.error.issues));
 
   const { orderId, amountPaisa, listingId, sellerId } = parsed.data;
 

@@ -7,7 +7,7 @@ export const adminUsersRouter = Router();
 function requireAdmin(req: Request, res: Response, next: () => void): void {
   const role = (req as any).user?.role;
   if (role !== 'admin' && role !== 'super_admin') {
-    res.status(403).json(errorResponse('Forbidden: admin access required', 403));
+    res.status(403).json(errorResponse('Forbidden: admin access required', String(403)));
     return;
   }
   next();
@@ -67,7 +67,7 @@ adminUsersRouter.get('/', authenticate, requireAdmin as any, async (req: Request
 
     res.json(successResponse({ rows, total }));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });
 
@@ -80,12 +80,12 @@ adminUsersRouter.patch('/:id/activate', authenticate, requireAdmin as any, async
       [id]
     );
     if (!user) {
-      res.status(404).json(errorResponse('User not found', 404));
+      res.status(404).json(errorResponse('User not found', String(404)));
       return;
     }
     res.json(successResponse(user));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });
 
@@ -99,12 +99,12 @@ adminUsersRouter.patch('/:id/suspend', authenticate, requireAdmin as any, async 
       [id, reason || null]
     );
     if (!user) {
-      res.status(404).json(errorResponse('User not found', 404));
+      res.status(404).json(errorResponse('User not found', String(404)));
       return;
     }
     res.json(successResponse(user));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });
 
@@ -118,12 +118,12 @@ adminUsersRouter.patch('/:id/ban', authenticate, requireAdmin as any, async (req
       [id, reason || null]
     );
     if (!user) {
-      res.status(404).json(errorResponse('User not found', 404));
+      res.status(404).json(errorResponse('User not found', String(404)));
       return;
     }
     res.json(successResponse(user));
   } catch (err: any) {
-    res.status(500).json(errorResponse(err.message || 'Internal server error', 500));
+    res.status(500).json(errorResponse(err.message || 'Internal server error', String(500)));
   }
 });
 

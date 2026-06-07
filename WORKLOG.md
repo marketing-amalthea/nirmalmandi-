@@ -3,6 +3,128 @@
 
 ---
 
+## Session: 2026-06-04 — Sprint 10 (Referral + BI Engines)
+
+### Discoveries (already built — confirmed by code audit)
+- `packages/auth-service/src/routes/profile.ts` — `GET /profile/referral` fully implemented (referral_code, link, stats, history)
+- `packages/analytics-service/src/engines/` — all 4 BI engines fully implemented (salesVelocity, demandSupply, agingRisk, revenueForecast)
+- `packages/analytics-service/src/routes/analytics.ts` — all 4 engines wired to REST endpoints
+- `web/src/app/referral/page.tsx` — full tier system, history, payouts, WhatsApp share — already built
+
+### What was actually built this session
+
+| File | What |
+|---|---|
+| `web/src/app/referral/page.tsx` | Added QR code using free `api.qrserver.com` API (100×100px, no package). Shows inline next to hero box with scan instructions |
+| `packages/analytics-service/src/engines/scheduler.ts` | Weekly auto-report job — checks every 5min, fires on Monday 02:30 UTC (08:00 IST). Queries GMV/orders/new users/disputes/top sectors, builds HTML email, sends to `platform_settings.weekly_report_emails` |
+| `packages/analytics-service/src/routes/adminSettings.ts` | 5 new KPI threshold defaults: `alert_gmv_drop_pct`, `alert_dispute_rate_pct`, `alert_aging_days`, `alert_low_cvr_pct`, `weekly_report_emails` |
+| `admin/src/app/(dashboard)/settings/page.tsx` | New "KPI Alert Thresholds" section with 5 configured inputs (number + email fields). Weekly report email recipients input wired to scheduler |
+
+### Build status: ~99% — Phase 1 & 2 COMPLETE
+
+---
+
+## Session: 2026-06-04 — Sprint 9 (Admin Intelligence + 3PL)
+
+### What was built
+
+#### Backend
+| File | What |
+|---|---|
+| `packages/analytics-service/src/routes/adminStats.ts` | 3 new endpoints: `GET /admin/stats/inventory-heatmap` (5 age buckets × sector), `GET /admin/stats/demand-supply` (views+watchlists vs supply listings), `GET /admin/stats/seller-scorecard` (per-seller GMV/orders/score/rates, top 20) |
+| `packages/logistics-service/src/routes/shipments.ts` | `POST /shipments/book-delhivery` — calls Delhivery pickup creation API, returns AWB. `POST /shipments/book-shiprocket` — Shiprocket auth + order creation, returns AWB. `GET /shipments/order/:order_id` — fetch shipment by order. Both booking endpoints update orders table with AWB + tracking_url |
+| `infra/migrations/003_watchlist_and_compare.sql` | Added `shipments.status`, `shipments.updated_at`, `UNIQUE (order_id)` constraint |
+
+#### Frontend — Admin
+| File | What |
+|---|---|
+| `admin/src/lib/api.ts` | Added `adminAnalyticsApi` — `getInventoryHeatmap()`, `getDemandSupply()`, `getSellerScorecard()` |
+| `admin/src/app/(dashboard)/analytics/page.tsx` | 3 new components: `InventoryHeatmap` (stacked proportional bars, color coded by age), `DemandSupplyChart` (dual bars per sector), `SellerScorecard` (sortable table with tier badges + color-coded metrics). All integrated into analytics page |
+
+#### Frontend — Web
+| File | What |
+|---|---|
+| `web/src/app/orders/[id]/page.tsx` | `LiveTrackingCard` — replaces static AWB display. Fetches `GET /api/logistics/shipments/order/:id`, shows 5-stage visual timeline (Booked → Picked Up → In Transit → Out for Delivery → Delivered), 60s auto-refresh, expected delivery date |
+
+### Build status: ~95% complete
+
+---
+
+## Session: 2026-06-04 — Sprint 8 (Seller Intelligence)
+
+### What was built
+
+#### Backend
+| File | What |
+|---|---|
+| `packages/analytics-service/src/routes/seller.ts` | Added `GET /seller/listings/:id/performance` — views/day, inquiries, orders, CVR, revenue, 14d synthetic trend |
+| `web/next.config.js` | Added specific rewrite for `/api/seller/listings/:id/performance` → analytics-service (before inventory catch-all) |
+| `ai-service/app/routers/seller.py` | NEW — `POST /ai/seller/insights` — Claude-powered seller analysis from KPI + funnel + top listing data |
+| `ai-service/app/main.py` | Registered `seller_router` at `/ai/seller` |
+
+#### Frontend — Web
+| File | What |
+|---|---|
+| `web/src/app/seller/analytics/page.tsx` | Fixed `kpi.active_listings` → `kpis.active_listings` bug. Extracted `AIInsightsPanel` component — rule-based insights always shown + "Ask Claude" button fetches `/ai/seller/insights` on demand. Claude response shown in indigo card |
+
+#### Frontend — Mobile
+| File | What |
+|---|---|
+| `mobile/app/(seller)/analytics.tsx` | NEW — KPI grid (4 cards), conversion funnel row with CVR badge, top-5 listings table (views/orders/revenue/conv%), rule-based AI insight card |
+| `mobile/app/(seller)/_layout.tsx` | Added Analytics tab (📈) between Orders and Profile |
+
+### Build status: ~92% complete
+
+---
+
+## Session: 2026-06-04 — Sprint 7 (Buyer Intelligence)
+
+### What was built
+
+#### Backend
+| File | What |
+|---|---|
+| `packages/analytics-service/src/engines/scheduler.ts` | Watchlist price-drop alert job — every 6h, finds >5% drops on watchlisted listings, posts FCM+in_app via notification service, marks `last_alert_sent_at` |
+| `packages/inventory-service/src/routes/buyer.ts` | NEW — `/buyer/watchlist` GET/POST/DELETE. POST captures `price_at_save` from current asking_price |
+| `packages/inventory-service/src/index.ts` | Registered `buyerRouter` at `/buyer` |
+| `packages/inventory-service/src/routes/listings.ts` | Watchlist POST updated to capture `price_at_save` |
+| `infra/migrations/003_watchlist_and_compare.sql` | `watchlist` table (id, buyer_id, listing_id, price_at_save, last_alert_sent_at). `seller_pincode` column on listings |
+
+#### Frontend — Web
+| File | What |
+|---|---|
+| `web/src/components/CompareDrawer.tsx` | NEW — Side-by-side comparison table for up to 3 listings. Shows best price/condition/quantity highlights. Sticky bottom drawer with close/clear |
+| `web/src/components/ListingCard.tsx` | Added `compareSelected` + `onCompareToggle` props — "+ Compare" / "✓ Added" pill overlay |
+| `web/src/app/listings/page.tsx` | CompareDrawer wired — `compareList` state, `handleCompareToggle` (max 3 guard), drawer at bottom |
+| `web/src/components/TierVerifyModal.tsx` | NEW — Tier 2 (PAN upload) and Tier 3 (video KYC) verification modal |
+| `web/src/app/checkout/page.tsx` | Tier gate in `handlePay` — auto-opens TierVerifyModal for >₹1L (tier 2) or >₹10L (tier 3), `tierVerified` state bypasses gate after submission |
+| `web/src/app/orders/page.tsx` | `exportCSV()` function — downloads all visible orders as `.csv` with full breakdown. "Export CSV" button in page header |
+
+### Build status: ~87% complete
+
+---
+
+## Session: 2026-06-04 — Sprint 6 Close-out + Freight Wire
+
+### Discoveries (already built, confirmed by code audit)
+- `useAuction.ts` — WebSocket hook ✅
+- `AuctionPanel.tsx` — outbid toast, reserve-not-met label, bid increment guard ✅
+- `auction.ts` — `notifyOutbid()` calls notification service ✅
+- Sprint 6 was 100% complete, not partially done as BUILDPLAN suggested
+
+### What was actually built this session
+
+#### Bug Fix — Delhivery Freight Wiring
+| File | What |
+|---|---|
+| `web/next.config.js` | Fixed logistics rewrite: `/api/logistics/:path*` → `http://localhost:3007/logistics/:path*` was wrong (service has no `/logistics` prefix). Now correctly maps `/freight/*` and `/shipments/*` |
+| `web/src/lib/api.ts` | Added `logisticsApi.getFreightEstimate()` — typed params (origin_pincode, dest_pincode, weight_kg, cod) → `GET /logistics/freight/estimate` |
+| `web/src/app/checkout/page.tsx` | Replaced broken `fetch('/api/logistics/freight-estimate?from=STATE')` with `logisticsApi.getFreightEstimate()`. Uses `selectedAddress.pincode` as dest, `listing.pincode ?? '110001'` as origin, `max(0.5, ceil(qty * 0.5))` kg weight estimate. Freight row now shows "Estimate unavailable" (not "Select freight option") on failure. Pay button disabled while loading or when estimate unavailable. |
+
+### Build status update: ~82% complete
+
+---
+
 ## Session: 2026-05-31 — Sprint 4-7 Continuation
 
 ### Built this session
