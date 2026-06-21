@@ -24,6 +24,7 @@
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "build:shared": "npm run build --workspace=packages/shared",
+    "build:services": "npm run build:shared && npm run build --workspace=packages/auth-service --workspace=packages/inventory-service --workspace=packages/order-service --workspace=packages/search-service --workspace=packages/payment-service --workspace=packages/notification-service --workspace=packages/logistics-service --workspace=packages/analytics-service --workspace=packages/invoice-service --workspace=packages/dispute-service",
     "build": "npm run build:shared && npm run build --workspaces --if-present",
     "migrate": "npm run migrate --workspace=packages/shared"
   },

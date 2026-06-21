@@ -1,0 +1,29 @@
+# Nixpacks build configuration for the NirmalMandi monorepo.
+#
+# Railway/Nixpacks gives this file the highest precedence for the build,
+# overriding auto-detected plans AND the `buildCommand` in each service's
+# railway.toml. All 10 Node.js services are built from this single repo
+# root, so we install once and compile the shared package first, then every
+# workspace.
+#
+# Key point about the historical failure:
+#   The old failure was `tsc: not found` during `npm i`. That happened
+#   because packages/shared had a `prepare` lifecycle script (removed in a
+#   prior commit). The install phase below uses `--ignore-scripts` so NO
+#   lifecycle script (prepare/postinstall) can run during install — tsc is
+#   therefore never invoked before it exists. tsc IS available in the build
+#   phase (it is a normal dependency), so `tsc --skipLibCheck` succeeds there.
+
+providers = ["node"]
+
+[phases.install]
+# Install all workspace dependencies. --ignore-scripts guarantees no
+# package's prepare/postinstall can trigger tsc before the build phase.
+cmds = ["npm install --ignore-scripts"]
+
+[phases.build]
+# Compile the shared package first (other services import its dist output),
+# then build every backend service. admin/web (Next.js) are intentionally
+# excluded here — they deploy separately and their `next build` needs its own
+# env and would otherwise fail/slow down every backend service build.
+cmds = ["npm run build:services"]
