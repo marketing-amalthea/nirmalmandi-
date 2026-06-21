@@ -19,7 +19,7 @@ providers = ["node"]
 [phases.install]
 # Install all workspace dependencies. --ignore-scripts guarantees no
 # package's prepare/postinstall can trigger tsc before the build phase.
-cmds = ["npm install --ignore-scripts"]
+cmds = ["npm install --ignore-scripts --include=dev"]
 
 [phases.build]
 # Compile the shared package first (other services import its dist output),
