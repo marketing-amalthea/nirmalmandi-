@@ -109,11 +109,11 @@ export async function generateBoardReport(period: string, generatedBy: string): 
   let y = 230;
   y = sectionHeader(doc, '1. PLATFORM KPIs (Month)', y);
   y = kpiRow(doc, [
-    { label: 'GMV', value: fmt(Number(kpis?.current?.gmv ?? 0)), sub: `vs ${fmt(Number(kpis?.previous?.gmv ?? 0))} prev` },
-    { label: 'Completed Orders', value: fmtN(Number(kpis?.current?.completed_orders ?? 0)) },
-    { label: 'Commission', value: fmt(Number(kpis?.current?.commission ?? 0)) },
-    { label: 'Active Sellers', value: fmtN(Number(kpis?.activeSellers?.count ?? 0)) },
-    { label: 'Active Buyers', value: fmtN(Number(kpis?.activeBuyers?.count ?? 0)) },
+    { label: 'GMV', value: fmt(Number((kpis as any)?.gmv?.value ?? 0)), sub: `${(kpis as any)?.gmv?.trend ?? 0}% vs prev` },
+    { label: 'Completed Orders', value: fmtN(Number((kpis as any)?.completed_orders?.value ?? 0)) },
+    { label: 'Commission', value: fmt(Number((kpis as any)?.commission?.value ?? 0)) },
+    { label: 'Active Sellers', value: fmtN(Number((kpis as any)?.active_sellers?.value ?? 0)) },
+    { label: 'Active Buyers', value: fmtN(Number((kpis as any)?.active_buyers?.value ?? 0)) },
   ], y);
 
   y += 8;
@@ -219,7 +219,7 @@ export async function generateBoardReport(period: string, generatedBy: string): 
     await query(
       `INSERT INTO board_reports (period, report_url, generated_by, kpi_snapshot)
        VALUES ($1, $2, $3, $4)`,
-      [period, url, generatedBy, JSON.stringify({ gmv: kpis?.current?.gmv })]
+      [period, url, generatedBy, JSON.stringify({ gmv: (kpis as any)?.gmv?.value })]
     );
     return url;
   } catch (err) {

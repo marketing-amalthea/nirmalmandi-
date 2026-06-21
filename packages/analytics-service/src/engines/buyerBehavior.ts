@@ -40,6 +40,8 @@ async function getClickHouseClient(): Promise<unknown> {
   if (!url) return null;
   if (_ch) return _ch;
   try {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore — optional peer dep, only available when CLICKHOUSE_URL is set
     const { createClient } = await import('@clickhouse/client');
     _ch = createClient({ url });
     return _ch;
