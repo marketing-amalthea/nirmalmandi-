@@ -31,7 +31,7 @@ authRouter.post(
     }
     const { phone } = parsed.data;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await setOtp(phone, otp, 120);
+    await setOtp(phone, otp, 600); // 10 min expiry
     await sendOtp(phone, otp);
     logger.info('OTP sent', { phone: phone.slice(0, 6) + '****' });
     res.json(successResponse({ message: 'OTP sent' }));
@@ -392,7 +392,7 @@ authRouter.post(
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const key = `email:${email.toLowerCase()}`;
-    await setOtp(key, otp, 120); // reuse same Redis helper, prefix key with 'email:'
+    await setOtp(key, otp, 600); // 10 min expiry — email delivery can be slow
     await sendEmailOtp(email.toLowerCase(), otp);
 
     logger.info('Email OTP sent', { email: email.replace(/(.{2}).+(@.+)/, '$1***$2') });
