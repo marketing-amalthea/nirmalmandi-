@@ -129,7 +129,7 @@ export default function LoginPage() {
       const res = await authApi.googleLogin(response.credential);
       const { access_token, refresh_token, user } = res.data.data;
       setToken(access_token, refresh_token);
-      setUser(user as Parameters<typeof setUser>[0]);
+      setUser(user as unknown as Parameters<typeof setUser>[0]);
       toast.success(`Welcome, ${user.name ?? 'there'}!`);
       redirect(user.role);
     } catch { toast.error('Google sign-in failed. Please try OTP instead.'); }
@@ -175,7 +175,7 @@ export default function LoginPage() {
         const res = await authApi.verifyEmailOtp(identifier, otp);
         const { access_token, refresh_token, user } = res.data.data;
         setToken(access_token, refresh_token);
-        setUser(user as Parameters<typeof setUser>[0]);
+        setUser(user as unknown as Parameters<typeof setUser>[0]);
         toast.success(`Welcome, ${user.name ?? 'there'}!`);
         redirect(user.role);
       } else {
