@@ -128,7 +128,7 @@ export default function ListingsPage() {
           sector: opts.sectorsVal.length === 1 ? opts.sectorsVal[0] : opts.sectorsVal.length > 1 ? opts.sectorsVal.join(',') : undefined,
           sort_by: opts.sortVal || undefined,
           // ── Sprint-4 filters now wired ────────────────────────────────────
-          condition_grade: opts.gradeVal.length > 0 ? opts.gradeVal.join(',') : undefined,
+          condition_grade: opts.gradesVal.length > 0 ? opts.gradesVal.join(',') : undefined,
           stock_type:      opts.stockVal.length > 0 ? opts.stockVal.join(',').toLowerCase() : undefined,
           lot_type:        opts.lotVal.length > 0   ? opts.lotVal.join(',').toLowerCase()   : undefined,
           min_price:       minPrice ? Number(minPrice) : undefined,

@@ -37,8 +37,8 @@ interface NewAddressForm {
 }
 
 const FREIGHT_OPTS: { value: FreightType; label: string; subtitle: string; icon: typeof Truck }[] = [
-  { value: 'platform_logistics', label: 'Platform logistics — Delhivery', subtitle: 'NirmalMandi arranges pickup & delivery · 2–4 days', icon: Truck },
-  { value: 'self_ship', label: 'Seller ship', subtitle: 'Seller arranges delivery · 3–7 days', icon: Store },
+  { value: 'platform_logistics', label: 'Platform logistics â€” Delhivery', subtitle: 'NirmalMandi arranges pickup & delivery Â· 2â€“4 days', icon: Truck },
+  { value: 'self_ship', label: 'Seller ship', subtitle: 'Seller arranges delivery Â· 3â€“7 days', icon: Store },
   { value: 'buyer_pickup', label: 'Buyer pickup', subtitle: 'Coordinate pickup directly with seller', icon: Hand },
 ];
 
@@ -105,7 +105,7 @@ export default function CheckoutPage() {
     try {
       const weightKg = Math.max(0.5, Math.ceil(quantity * 0.5));
       const res = await logisticsApi.getFreightEstimate({
-        origin_pincode: String((listing as Record<string, unknown>).pincode ?? '110001'),
+        origin_pincode: String((listing as unknown as Record<string, unknown>).pincode ?? '110001'),
         dest_pincode: selectedAddress.pincode,
         weight_kg: weightKg,
       });
@@ -123,7 +123,7 @@ export default function CheckoutPage() {
     if (freightType === 'platform_logistics' && selectedAddress) fetchFreightEstimate();
   }, [freightType, selectedAddress, fetchFreightEstimate]);
 
-  const pricePerUnit = Number((listing as Record<string, unknown> | null)?.asking_price ?? (listing as Record<string, unknown> | null)?.price_per_unit ?? 0);
+  const pricePerUnit = Number((listing as unknown as Record<string, unknown> | null)?.asking_price ?? (listing as unknown as Record<string, unknown> | null)?.price_per_unit ?? 0);
   const subtotal = pricePerUnit * quantity;
   const platformFee = (subtotal * PLATFORM_FEE_PCT) / 100;
   const gstOnFee = (platformFee * GST_ON_FEE_PCT) / 100;
@@ -199,7 +199,7 @@ export default function CheckoutPage() {
         amount: rzpData.amount,
         order_id: rzpData.razorpay_order_id,
         name: 'NirmalMandi',
-        description: String((listing as Record<string, unknown> | null)?.title ?? 'Inventory Purchase'),
+        description: String((listing as unknown as Record<string, unknown> | null)?.title ?? 'Inventory Purchase'),
         prefill: { name: user?.name ?? '', contact: user?.phone ?? '' },
         theme: { color: '#1f6b3a' },
         handler: () => { router.push(`/orders/${orderId}?paid=true`); },
@@ -235,7 +235,7 @@ export default function CheckoutPage() {
     );
   }
 
-  const l = listing as Record<string, unknown>;
+  const l = listing as unknown as Record<string, unknown>;
   const grade = String(l.condition_grade ?? '');
   const payDisabled = placing || !freightType || loadingFreight || (freightType === 'platform_logistics' && freightEstimate === null);
 
@@ -266,7 +266,7 @@ export default function CheckoutPage() {
           </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr]" style={{ gap: 32 }}>
-            {/* ── Summary ── */}
+            {/* â”€â”€ Summary â”€â”€ */}
             <div>
               <div className="sticky" style={{ top: 24 }}>
                 <div className="nm-card" style={{ padding: 20 }}>
@@ -288,13 +288,13 @@ export default function CheckoutPage() {
 
                   {/* Line items */}
                   <div className="flex flex-col">
-                    <LineItem label={`Subtotal (${quantity} × ${inr(pricePerUnit)})`} value={inr(subtotal)} />
+                    <LineItem label={`Subtotal (${quantity} Ã— ${inr(pricePerUnit)})`} value={inr(subtotal)} />
                     <LineItem label={`Platform fee (${PLATFORM_FEE_PCT}%)`} value={inr(platformFee)} />
                     <LineItem label={`GST on fee (${GST_ON_FEE_PCT}%)`} value={inr(gstOnFee)} />
                     <LineItem
                       label="Freight"
                       valueNode={
-                        loadingFreight ? <span style={{ color: 'var(--nm-faint)' }}>Calculating…</span>
+                        loadingFreight ? <span style={{ color: 'var(--nm-faint)' }}>Calculatingâ€¦</span>
                           : freight === null && !freightType ? <span style={{ color: 'var(--nm-faint)', fontStyle: 'italic' }}>Select option</span>
                           : freight === null && freightType === 'platform_logistics' ? <span style={{ color: 'var(--nm-red)', fontStyle: 'italic', fontSize: 12 }}>Unavailable</span>
                           : freight === 0 ? <span style={{ color: 'var(--nm-green)', fontWeight: 700 }}>Free</span>
@@ -318,14 +318,14 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* ── Form ── */}
+            {/* â”€â”€ Form â”€â”€ */}
             <div className="flex flex-col" style={{ gap: 28 }}>
               {/* Section 1: Delivery address */}
               <div>
                 <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--nm-faint)', margin: '0 0 12px' }}>Delivery address</p>
                 {loadingAddresses ? (
                   <div className="flex items-center gap-2" style={{ fontSize: 13, color: 'var(--nm-faint)' }}>
-                    <Loader2 size={16} className="animate-spin" /> Loading addresses…
+                    <Loader2 size={16} className="animate-spin" /> Loading addressesâ€¦
                   </div>
                 ) : (
                   <div className="flex flex-col" style={{ gap: 10 }}>
@@ -341,7 +341,7 @@ export default function CheckoutPage() {
                           <div style={{ fontSize: 13 }}>
                             <p className="disp" style={{ fontWeight: 700, color: 'var(--nm-ink)', margin: 0 }}>{addr.name}</p>
                             <p style={{ color: 'var(--nm-muted)', margin: '2px 0 0' }}>{addr.address_line1}{addr.address_line2 ? `, ${addr.address_line2}` : ''}</p>
-                            <p style={{ color: 'var(--nm-muted)', margin: 0 }}>{addr.city}, {addr.state} — {addr.pincode}</p>
+                            <p style={{ color: 'var(--nm-muted)', margin: 0 }}>{addr.city}, {addr.state} â€” {addr.pincode}</p>
                             <p style={{ color: 'var(--nm-faint)', margin: '2px 0 0' }}>{addr.phone}</p>
                           </div>
                         </label>
@@ -413,7 +413,7 @@ export default function CheckoutPage() {
                       const sel = freightType === opt.value;
                       const Icon = opt.icon;
                       const cost = opt.value === 'platform_logistics'
-                        ? (loadingFreight ? 'Calculating…' : freightEstimate !== null && sel ? inr(freightEstimate) : 'See estimate')
+                        ? (loadingFreight ? 'Calculatingâ€¦' : freightEstimate !== null && sel ? inr(freightEstimate) : 'See estimate')
                         : 'Free';
                       return (
                         <label key={opt.value} className="nm-card flex items-start gap-3 cursor-pointer" style={{
@@ -452,9 +452,9 @@ export default function CheckoutPage() {
 
               {/* Pay button */}
               <button onClick={handlePay} disabled={payDisabled} className="nm-btn-primary" style={{ width: '100%', padding: '15px 24px', fontSize: 15.5, opacity: payDisabled ? 0.55 : 1, cursor: payDisabled ? 'not-allowed' : 'pointer' }}>
-                {placing ? <><Loader2 size={18} className="animate-spin" /> Processing…</> : <><Lock size={16} /> Pay {inr(total)} securely</>}
+                {placing ? <><Loader2 size={18} className="animate-spin" /> Processingâ€¦</> : <><Lock size={16} /> Pay {inr(total)} securely</>}
               </button>
-              <p className="text-center" style={{ fontSize: 11.5, color: 'var(--nm-faint)', margin: '-12px 0 0' }}>UPI · Cards · NEFT · RTGS via Razorpay · 256-bit SSL</p>
+              <p className="text-center" style={{ fontSize: 11.5, color: 'var(--nm-faint)', margin: '-12px 0 0' }}>UPI Â· Cards Â· NEFT Â· RTGS via Razorpay Â· 256-bit SSL</p>
             </div>
           </div>
         </main>

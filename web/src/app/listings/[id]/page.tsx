@@ -74,7 +74,7 @@ export default function ListingDetailPage() {
     </div>
   );
 
-  const l = listing as Record<string, unknown>;
+  const l = listing as unknown as Record<string, unknown>;
   const pricePerUnit = Number(l.asking_price ?? l.price_per_unit ?? 0);
   const availableQty  = Number(l.available_quantity ?? l.quantity ?? 0);
   const sectorName    = String(l.sector_name ?? l.sector ?? '—');
@@ -202,7 +202,7 @@ export default function ListingDetailPage() {
               <div className="nm-card" style={{ padding: '18px 20px' }}>
                 <h3 className="disp" style={{ fontSize: 14, fontWeight: 700, margin: '0 0 14px', color: 'var(--nm-ink)' }}>Lot specifications</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
-                  {Object.entries(l.attributes as Record<string, unknown>).map(([k, v]) => (
+                  {Object.entries(l.attributes as unknown as Record<string, unknown>).map(([k, v]) => (
                     <div key={k}>
                       <p style={{ fontSize: 11, color: 'var(--nm-faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{k}</p>
                       <p style={{ fontSize: 13.5, color: 'var(--nm-ink)', margin: '2px 0 0' }}>{String(v)}</p>
