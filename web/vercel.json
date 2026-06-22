@@ -1,0 +1,21 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "nodeVersion": "20.x",
+  "env": {
+    "NEXT_PUBLIC_API_URL": {
+      "description": "Backend API base URL from Railway services",
+      "required": true
+    },
+    "NEXT_PUBLIC_NEON_DB_URL": {
+      "description": "Neon PostgreSQL connection string",
+      "required": false
+    },
+    "NEXT_PUBLIC_UPSTASH_REDIS_URL": {
+      "description": "Upstash Redis URL",
+      "required": false
+    }
+  }
+}

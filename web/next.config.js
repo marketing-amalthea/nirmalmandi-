@@ -4,17 +4,17 @@
 //   SEARCH_SERVICE_URL    PAYMENT_SERVICE_URL    NOTIFICATION_SERVICE_URL
 //   LOGISTICS_SERVICE_URL ANALYTICS_SERVICE_URL  INVOICE_SERVICE_URL
 //   DISPUTE_SERVICE_URL   AI_SERVICE_URL
-const AUTH       = process.env.AUTH_SERVICE_URL        || 'http://localhost:3001';
-const INVENTORY  = process.env.INVENTORY_SERVICE_URL   || 'http://localhost:3002';
-const ORDER      = process.env.ORDER_SERVICE_URL       || 'http://localhost:3003';
-const SEARCH     = process.env.SEARCH_SERVICE_URL      || 'http://localhost:3004';
-const PAYMENT    = process.env.PAYMENT_SERVICE_URL     || 'http://localhost:3005';
-const NOTIF      = process.env.NOTIFICATION_SERVICE_URL|| 'http://localhost:3006';
-const LOGISTICS  = process.env.LOGISTICS_SERVICE_URL   || 'http://localhost:3007';
-const ANALYTICS  = process.env.ANALYTICS_SERVICE_URL   || 'http://localhost:3008';
-const INVOICE    = process.env.INVOICE_SERVICE_URL     || 'http://localhost:3009';
-const DISPUTE    = process.env.DISPUTE_SERVICE_URL     || 'http://localhost:3010';
-const AI         = process.env.AI_SERVICE_URL          || 'http://localhost:8000';
+const AUTH       = process.env.AUTH_SERVICE_URL        || 'https://nirmalmandiauth-service-production.up.railway.app';
+const INVENTORY  = process.env.INVENTORY_SERVICE_URL   || 'https://nirmalmandiinventory-service-production.up.railway.app';
+const ORDER      = process.env.ORDER_SERVICE_URL       || 'https://nirmalmandiorder-service-production.up.railway.app';
+const SEARCH     = process.env.SEARCH_SERVICE_URL      || 'https://nirmalmandisearch-service-production.up.railway.app';
+const PAYMENT    = process.env.PAYMENT_SERVICE_URL     || 'https://nirmalmandipayment-service-production.up.railway.app';
+const NOTIF      = process.env.NOTIFICATION_SERVICE_URL|| 'https://nirmalmandinotification-service-production.up.railway.app';
+const LOGISTICS  = process.env.LOGISTICS_SERVICE_URL   || 'https://nirmalmandilogistics-service-production.up.railway.app';
+const ANALYTICS  = process.env.ANALYTICS_SERVICE_URL   || 'https://nirmalmandianalytics-service-production.up.railway.app';
+const INVOICE    = process.env.INVOICE_SERVICE_URL     || 'https://nirmalmandiinvoice-service-production.up.railway.app';
+const DISPUTE    = process.env.DISPUTE_SERVICE_URL     || 'https://nirmalmandidispute-service-production.up.railway.app';
+const AI         = process.env.AI_SERVICE_URL          || 'https://nirmalmandiai-service-production.up.railway.app';
 
 module.exports = {
   typescript: {

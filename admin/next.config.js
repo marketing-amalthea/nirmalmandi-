@@ -3,15 +3,15 @@
 //   AUTH_SERVICE_URL      INVENTORY_SERVICE_URL  ORDER_SERVICE_URL
 //   PAYMENT_SERVICE_URL   NOTIFICATION_SERVICE_URL  ANALYTICS_SERVICE_URL
 //   AI_SERVICE_URL
-const AUTH      = process.env.AUTH_SERVICE_URL         || 'http://localhost:3001';
-const INVENTORY = process.env.INVENTORY_SERVICE_URL    || 'http://localhost:3002';
-const ORDER     = process.env.ORDER_SERVICE_URL        || 'http://localhost:3003';
-const PAYMENT   = process.env.PAYMENT_SERVICE_URL      || 'http://localhost:3005';
-const NOTIF     = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006';
-const ANALYTICS = process.env.ANALYTICS_SERVICE_URL    || 'http://localhost:3008';
-const DISPUTE   = process.env.DISPUTE_SERVICE_URL      || 'http://localhost:3009';
-const INVOICE   = process.env.INVOICE_SERVICE_URL      || 'http://localhost:3011';
-const AI        = process.env.AI_SERVICE_URL           || 'http://localhost:8000';
+const AUTH      = process.env.AUTH_SERVICE_URL         || 'https://nirmalmandiauth-service-production.up.railway.app';
+const INVENTORY = process.env.INVENTORY_SERVICE_URL    || 'https://nirmalmandiinventory-service-production.up.railway.app';
+const ORDER     = process.env.ORDER_SERVICE_URL        || 'https://nirmalmandiorder-service-production.up.railway.app';
+const PAYMENT   = process.env.PAYMENT_SERVICE_URL      || 'https://nirmalmandipayment-service-production.up.railway.app';
+const NOTIF     = process.env.NOTIFICATION_SERVICE_URL || 'https://nirmalmandinotification-service-production.up.railway.app';
+const ANALYTICS = process.env.ANALYTICS_SERVICE_URL    || 'https://nirmalmandianalytics-service-production.up.railway.app';
+const DISPUTE   = process.env.DISPUTE_SERVICE_URL      || 'https://nirmalmandidispute-service-production.up.railway.app';
+const INVOICE   = process.env.INVOICE_SERVICE_URL      || 'https://nirmalmandiinvoice-service-production.up.railway.app';
+const AI        = process.env.AI_SERVICE_URL           || 'https://nirmalmandiai-service-production.up.railway.app';
 
 const nextConfig = {
   typescript: {
