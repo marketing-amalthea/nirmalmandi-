@@ -646,7 +646,11 @@ authRouter.post('/google', async (req: Request, res: Response) => {
 function stripQuotes(s: string) { return s.replace(/^["']|["']$/g, '').trim(); }
 
 function generateTokens(userId: string, phone: string, role: string, profileId: string) {
-  const privateKey = Buffer.from(stripQuotes(process.env.JWT_PRIVATE_KEY || ''), 'base64').toString();
+  const rawKey = process.env.JWT_PRIVATE_KEY || '';
+  logger.info('JWT key debug', { rawLen: rawKey.length, first5: rawKey.slice(0,5), last5: rawKey.slice(-5) });
+  const cleanKey = stripQuotes(rawKey);
+  const privateKey = Buffer.from(cleanKey, 'base64').toString();
+  logger.info('JWT key decoded', { pemLen: privateKey.length, pemStart: privateKey.slice(0,27) });
   const access_token = jwt.sign(
     { sub: userId, phone, role, profile_id: profileId },
     privateKey,
