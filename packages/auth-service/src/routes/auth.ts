@@ -18,19 +18,30 @@ import { verifyBankAccount } from '../services/kyc';
 
 export const authRouter = Router();
 
-// ── Stateless JWT-signed OTP — uses RS256 private/public key pair ────────────
-function getPrivKey() { return Buffer.from(process.env.JWT_PRIVATE_KEY ?? '', 'base64').toString(); }
-function getPubKey()  { return Buffer.from(process.env.JWT_PUBLIC_KEY  ?? '', 'base64').toString(); }
+// ── Stateless OTP token — HMAC-SHA256, no external deps ──────────────────────
+const OTP_SECRET = (process.env.INTERNAL_SERVICE_SECRET ?? 'nm-fallback-otp-secret-2026').replace(/^"|"$/g, '').replace(/^'|'$/g, '');
 
 function signOtpToken(email: string, otp: string): string {
-  return jwt.sign({ em: email.toLowerCase(), ot: otp, pu: 'eotp' }, getPrivKey(), { algorithm: 'RS256', expiresIn: '10m' });
+  // payload: base64(email:otp:exp) + HMAC signature
+  const exp = Date.now() + 10 * 60 * 1000;
+  const payload = Buffer.from(`${email.toLowerCase()}|${otp}|${exp}`).toString('base64');
+  const sig = require('crypto').createHmac('sha256', OTP_SECRET).update(payload).digest('hex');
+  return `${payload}.${sig}`;
 }
+
 function verifyOtpToken(token: string, email: string, otp: string): boolean {
   try {
-    const p = jwt.verify(token, getPubKey(), { algorithms: ['RS256'] }) as { em: string; ot: string; pu: string };
-    return p.pu === 'eotp' && p.em === email.toLowerCase() && p.ot === otp;
+    const [payload, sig] = token.split('.');
+    if (!payload || !sig) return false;
+    const expectedSig = require('crypto').createHmac('sha256', OTP_SECRET).update(payload).digest('hex');
+    if (sig !== expectedSig) { logger.warn('OTP token bad signature'); return false; }
+    const [storedEmail, storedOtp, expStr] = Buffer.from(payload, 'base64').toString().split('|');
+    if (Date.now() > parseInt(expStr)) { logger.warn('OTP token expired'); return false; }
+    const match = storedEmail === email.toLowerCase() && storedOtp === otp;
+    logger.info('OTP token check', { match, storedEmail, inputEmail: email.toLowerCase() });
+    return match;
   } catch (e) {
-    logger.warn('OTP token verify failed', { error: (e as Error).message });
+    logger.warn('OTP token verify error', { error: (e as Error).message });
     return false;
   }
 }
