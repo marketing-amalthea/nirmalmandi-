@@ -30,7 +30,13 @@ export default api;
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const authApi = {
-  // Email OTP
+  // Email + Password
+  emailRegister: (data: { email: string; password: string; name?: string; role?: string }) =>
+    api.post<{ data: { access_token: string; refresh_token: string; user: { id: string; name: string; email: string; role: string } } }>('/auth/email/register', data),
+  emailLogin: (email: string, password: string) =>
+    api.post<{ data: { access_token: string; refresh_token: string; user: { id: string; name: string; email: string; role: string } } }>('/auth/email/login', { email, password }),
+
+  // Email OTP (forgot password only)
   sendEmailOtp: (email: string) =>
     api.post('/auth/email/otp/send', { email }),
   verifyEmailOtp: (email: string, otp: string, token?: string) =>

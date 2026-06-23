@@ -35,7 +35,7 @@ module.exports = {
       { source: '/api/user/addresses/:path*',    destination: `${AUTH}/profile/addresses/:path*` },
       { source: '/api/referral/stats',           destination: `${AUTH}/profile/referral` },
       { source: '/api/referral/:path*',          destination: `${AUTH}/profile/referral/:path*` },
-      // Email OTP + one-time phone verification + seller quick register
+      // Email password + OTP + seller quick register
       { source: '/api/auth/email/:path*',        destination: `${AUTH}/auth/email/:path*` },
       { source: '/api/auth/seller/:path*',       destination: `${AUTH}/auth/seller/:path*` },
       { source: '/api/auth/verify-phone/:path*', destination: `${AUTH}/auth/verify-phone/:path*` },

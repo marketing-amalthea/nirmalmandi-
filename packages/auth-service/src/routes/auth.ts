@@ -407,6 +407,104 @@ authRouter.put('/kyc-upload-mock', (req: Request, res: Response) => {
   res.status(200).send('OK');
 });
 
+// ── POST /auth/email/register — email + password signup ─────────────────────
+
+authRouter.post('/email/register', rateLimiter(10), async (req: Request, res: Response) => {
+  const schema = z.object({
+    email:    z.string().email(),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    name:     z.string().min(1).default('User'),
+    role:     z.enum(['buyer', 'seller']).default('buyer'),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json(errorResponse(parsed.error.errors[0].message, 'VALIDATION_ERROR'));
+
+  const { email, password, name, role } = parsed.data;
+  const bcrypt = require('bcryptjs');
+
+  // Check email already exists
+  const existing = await queryOne<{ id: string }>('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+  if (existing) return res.status(409).json(errorResponse('Email already registered. Please login instead.', 'EMAIL_EXISTS'));
+
+  const password_hash = await bcrypt.hash(password, 10);
+  const phone = `em_${Date.now().toString(36)}`; // placeholder, fits VARCHAR(15)
+
+  const userId = (await queryOne<{ id: string }>(
+    `INSERT INTO users (id, phone, email, name, role, password_hash)
+     VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) RETURNING id`,
+    [phone, email.toLowerCase(), name, role, password_hash]
+  ))!.id;
+
+  let profileId = userId;
+  if (role === 'seller') {
+    const p = await queryOne<{ id: string }>(
+      `INSERT INTO seller_profiles (id, user_id, business_name, verification_tier)
+       VALUES (gen_random_uuid(), $1, $2, 'unverified') RETURNING id`,
+      [userId, name]
+    );
+    profileId = p!.id;
+  } else {
+    const p = await queryOne<{ id: string }>(
+      `INSERT INTO buyer_profiles (id, user_id) VALUES (gen_random_uuid(), $1) RETURNING id`,
+      [userId]
+    );
+    profileId = p!.id;
+  }
+
+  const tokens = generateTokens(userId, email.toLowerCase(), role, profileId);
+  await setSession(userId, tokens.refresh_token, 60 * 60 * 24 * 30);
+
+  logger.info('Email/password registration', { userId, role });
+  return res.status(201).json(successResponse({
+    ...tokens,
+    user: { id: userId, name, email: email.toLowerCase(), role },
+    registered: true,
+  }));
+});
+
+// ── POST /auth/email/login — email + password login ───────────────────────────
+
+authRouter.post('/email/login', rateLimiter(20), async (req: Request, res: Response) => {
+  const schema = z.object({
+    email:    z.string().email(),
+    password: z.string().min(1),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json(errorResponse('Email and password required', 'VALIDATION_ERROR'));
+
+  const { email, password } = parsed.data;
+  const bcrypt = require('bcryptjs');
+
+  const user = await queryOne<{ id: string; role: string; name: string; password_hash: string | null }>(
+    'SELECT id, role, name, password_hash FROM users WHERE email = $1 LIMIT 1',
+    [email.toLowerCase()]
+  );
+
+  if (!user || !user.password_hash) {
+    return res.status(401).json(errorResponse('Invalid email or password', 'AUTH_FAILED'));
+  }
+
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) return res.status(401).json(errorResponse('Invalid email or password', 'AUTH_FAILED'));
+
+  const profileRow = await queryOne<{ id: string }>(
+    `SELECT id FROM buyer_profiles WHERE user_id = $1
+     UNION ALL SELECT id FROM seller_profiles WHERE user_id = $1 LIMIT 1`,
+    [user.id]
+  );
+  const profileId = profileRow?.id ?? user.id;
+
+  const tokens = generateTokens(user.id, email.toLowerCase(), user.role, profileId);
+  await setSession(user.id, tokens.refresh_token, 60 * 60 * 24 * 30);
+
+  logger.info('Email/password login', { userId: user.id, role: user.role });
+  return res.json(successResponse({
+    ...tokens,
+    user: { id: user.id, name: user.name, email: email.toLowerCase(), role: user.role },
+    registered: true,
+  }));
+});
+
 // ── POST /auth/email/otp/send — send OTP to email ────────────────────────────
 
 authRouter.post(
