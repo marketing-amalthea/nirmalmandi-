@@ -19,8 +19,13 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      removeToken();
-      if (typeof window !== 'undefined') window.location.href = '/login';
+      // Only redirect to login if the token itself is rejected (code TOKEN_INVALID or AUTH_REQUIRED)
+      // Not for every 401 (e.g. permission denied, feature locked)
+      const code = (error.response?.data as { code?: string })?.code;
+      if (code === 'TOKEN_INVALID' || code === 'AUTH_REQUIRED') {
+        removeToken();
+        if (typeof window !== 'undefined') window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

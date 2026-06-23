@@ -25,7 +25,8 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
+      const code = (error.response?.data as { code?: string })?.code;
+      if ((code === 'TOKEN_INVALID' || code === 'AUTH_REQUIRED') && typeof window !== 'undefined') {
         localStorage.removeItem('nm_admin_token');
         localStorage.removeItem('nm_admin_user');
         window.location.href = '/login';
