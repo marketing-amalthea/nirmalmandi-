@@ -13,6 +13,7 @@ import {
   logger,
 } from '@nirmalmandi/shared';
 import { sendOtp, sendEmailOtp } from '../services/otp';
+import bcrypt from 'bcryptjs';
 import { validateGstin } from '../services/gstn';
 import { verifyBankAccount } from '../services/kyc';
 
@@ -420,7 +421,7 @@ authRouter.post('/email/register', rateLimiter(10), async (req: Request, res: Re
   if (!parsed.success) return res.status(400).json(errorResponse(parsed.error.errors[0].message, 'VALIDATION_ERROR'));
 
   const { email, password, name, role } = parsed.data;
-  const bcrypt = require('bcryptjs');
+  // bcrypt imported at top
 
   // Check email already exists
   const existing = await queryOne<{ id: string }>('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
@@ -473,7 +474,7 @@ authRouter.post('/email/login', rateLimiter(20), async (req: Request, res: Respo
   if (!parsed.success) return res.status(400).json(errorResponse('Email and password required', 'VALIDATION_ERROR'));
 
   const { email, password } = parsed.data;
-  const bcrypt = require('bcryptjs');
+  // bcrypt imported at top
 
   const user = await queryOne<{ id: string; role: string; name: string; password_hash: string | null }>(
     'SELECT id, role, name, password_hash FROM users WHERE email = $1 LIMIT 1',
