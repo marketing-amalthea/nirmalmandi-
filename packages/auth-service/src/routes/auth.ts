@@ -392,9 +392,9 @@ authRouter.post(
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const key = `email:${email.toLowerCase()}`;
-    await setOtp(key, otp, 600); // 10 min expiry — email delivery can be slow
+    await setOtp(key, otp, 600);
+    logger.info('Email OTP stored', { key, otpFirst2: otp.slice(0,2) });
     await sendEmailOtp(email.toLowerCase(), otp);
-
     logger.info('Email OTP sent', { email: email.replace(/(.{2}).+(@.+)/, '$1***$2') });
     return res.json(successResponse({ message: 'OTP sent to your email' }));
   }
@@ -407,15 +407,17 @@ authRouter.post(
   rateLimiter(10),
   async (req: Request, res: Response) => {
     const schema = z.object({
-      email: z.string().email(),
-      otp:   z.string().length(6),
+      email: z.string().email().toLowerCase(),
+      otp:   z.string().trim().min(1).max(8).transform(v => v.replace(/\D/g, '').slice(0, 6)),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', 'VALIDATION_ERROR', parsed.error.issues));
 
     const { email, otp } = parsed.data;
     const key = `email:${email.toLowerCase()}`;
+    logger.info('Email OTP verify', { key, otpLen: otp.length, otp: otp.slice(0,2)+'****' });
     const valid = await verifyAndDeleteOtp(key, otp);
+    logger.info('Email OTP verify result', { valid, key });
     if (!valid) return res.status(401).json(errorResponse('Invalid or expired OTP', 'OTP_INVALID'));
 
     // Find or create user by email
