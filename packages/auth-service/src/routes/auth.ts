@@ -437,7 +437,8 @@ authRouter.post(
     logger.info('Email OTP verify result', { valid, emailKey });
     if (!valid) return res.status(401).json(errorResponse('Invalid or expired OTP', 'OTP_INVALID'));
 
-    // Find or create user by email
+    // Find or create user by email — wrapped to surface real errors to client
+    try {
     let user = await queryOne<{ id: string; role: string; phone: string; name: string | null }>(
       'SELECT id, role, phone, name FROM users WHERE email = $1 LIMIT 1',
       [email.toLowerCase()]
@@ -485,6 +486,11 @@ authRouter.post(
       user: { id: user.id, name: user.name ?? email.split('@')[0], email, role: user.role },
       registered: true,
     }));
+    } catch (dbErr) {
+      const msg = (dbErr as Error).message;
+      logger.error('Email OTP verify DB error', { error: msg });
+      return res.status(500).json(errorResponse(`Server error: ${msg}`, 'DB_ERROR'));
+    }
   }
 );
 

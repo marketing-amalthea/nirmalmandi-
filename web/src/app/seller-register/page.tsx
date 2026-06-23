@@ -97,7 +97,11 @@ export default function SellerRegisterPage() {
       setUser({ ...finalUser, role: 'seller' });
       setStep('done');
       setTimeout(() => router.push('/seller/dashboard'), 1500);
-    } catch { toast.error('Invalid OTP. Please try again.'); }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string; message?: string } } };
+      const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? 'OTP verification failed';
+      toast.error(msg);
+    }
     finally { setLoading(false); }
   }
 
