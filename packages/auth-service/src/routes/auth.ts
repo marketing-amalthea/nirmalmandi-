@@ -18,18 +18,19 @@ import { verifyBankAccount } from '../services/kyc';
 
 export const authRouter = Router();
 
-// ── In-memory OTP fallback (single-instance Railway, bypasses Redis) ──────────
-const emailOtpStore = new Map<string, { otp: string; expires: number }>();
-function storeEmailOtp(email: string, otp: string) {
-  emailOtpStore.set(email, { otp, expires: Date.now() + 10 * 60 * 1000 });
+// ── Stateless JWT-signed OTP (no Redis/DB/memory needed) ─────────────────────
+// OTP is embedded in a signed JWT returned in the send response.
+// Frontend sends the token back on verify. We decode+verify = no storage needed.
+function signOtpToken(email: string, otp: string): string {
+  const secret = process.env.INTERNAL_SERVICE_SECRET ?? 'dev-secret';
+  return jwt.sign({ email, otp }, secret, { expiresIn: '10m' });
 }
-function verifyEmailOtp(email: string, otp: string): boolean {
-  const entry = emailOtpStore.get(email);
-  if (!entry) return false;
-  if (Date.now() > entry.expires) { emailOtpStore.delete(email); return false; }
-  if (entry.otp !== otp) return false;
-  emailOtpStore.delete(email);
-  return true;
+function verifyOtpToken(token: string, email: string, otp: string): boolean {
+  try {
+    const secret = process.env.INTERNAL_SERVICE_SECRET ?? 'dev-secret';
+    const payload = jwt.verify(token, secret) as { email: string; otp: string };
+    return payload.email.toLowerCase() === email.toLowerCase() && payload.otp === otp;
+  } catch { return false; }
 }
 
 // ── POST /auth/otp/send ──────────────────────────────────────
@@ -406,13 +407,10 @@ authRouter.post(
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const emailKey = email.toLowerCase();
-    // Store in both Redis and in-memory (in-memory is the authoritative source)
-    storeEmailOtp(emailKey, otp);
-    try { await setOtp(`email:${emailKey}`, otp, 600); } catch { /* redis optional */ }
-    logger.info('Email OTP stored', { emailKey, otpFirst2: otp.slice(0,2) });
+    const otpToken = signOtpToken(emailKey, otp); // stateless JWT — no storage needed
     await sendEmailOtp(emailKey, otp);
     logger.info('Email OTP sent', { email: email.replace(/(.{2}).+(@.+)/, '$1***$2') });
-    return res.json(successResponse({ message: 'OTP sent to your email' }));
+    return res.json(successResponse({ message: 'OTP sent to your email', token: otpToken }));
   }
 );
 
@@ -423,17 +421,17 @@ authRouter.post(
   rateLimiter(10),
   async (req: Request, res: Response) => {
     const schema = z.object({
-      email: z.string().email().toLowerCase(),
+      email: z.string().email(),
       otp:   z.string().trim().min(1).max(8).transform(v => v.replace(/\D/g, '').slice(0, 6)),
+      token: z.string().min(10), // JWT from send response
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json(errorResponse('Validation failed', 'VALIDATION_ERROR', parsed.error.issues));
 
-    const { email, otp } = parsed.data;
+    const { email, otp, token } = parsed.data;
     const emailKey = email.toLowerCase();
     logger.info('Email OTP verify', { emailKey, otpLen: otp.length });
-    // Use in-memory store as primary (Redis optional backup)
-    const valid = verifyEmailOtp(emailKey, otp);
+    const valid = verifyOtpToken(token, emailKey, otp);
     logger.info('Email OTP verify result', { valid, emailKey });
     if (!valid) return res.status(401).json(errorResponse('Invalid or expired OTP', 'OTP_INVALID'));
 

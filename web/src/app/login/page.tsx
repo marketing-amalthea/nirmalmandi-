@@ -112,6 +112,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [identifier, setIdentifier] = useState(''); // email or phone depending on method
   const [otp, setOtp] = useState('');
+  const [otpToken, setOtpToken] = useState('');
   const [name, setName] = useState('');
   const [userState, setUserState] = useState('');
   const [city, setCity] = useState('');
@@ -154,7 +155,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (isEmail) {
-        await authApi.sendEmailOtp(identifier);
+        const sendRes = await authApi.sendEmailOtp(identifier);
+        const tok = (sendRes.data as { data?: { token?: string } })?.data?.token ?? '';
+        setOtpToken(tok);
         toast.success(`OTP sent to ${identifier}`);
       } else {
         await authApi.sendOtp(identifier);
@@ -172,7 +175,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (isEmail) {
-        const res = await authApi.verifyEmailOtp(identifier, otp);
+        const res = await authApi.verifyEmailOtp(identifier, otp, otpToken);
         const { access_token, refresh_token, user } = res.data.data;
         setToken(access_token, refresh_token);
         setUser(user as unknown as Parameters<typeof setUser>[0]);

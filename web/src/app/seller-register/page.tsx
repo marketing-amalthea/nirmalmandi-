@@ -53,6 +53,7 @@ export default function SellerRegisterPage() {
   const [step, setStep] = useState<'email' | 'otp' | 'done'>('email');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [otpToken, setOtpToken] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function sendOtp(e: React.FormEvent) {
@@ -60,7 +61,9 @@ export default function SellerRegisterPage() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error('Enter a valid email address'); return; }
     setLoading(true);
     try {
-      await api.post('/auth/email/otp/send', { email });
+      const res = await api.post('/auth/email/otp/send', { email });
+      const tok = (res.data as { data?: { token?: string } })?.data?.token ?? '';
+      setOtpToken(tok);
       setStep('otp');
       toast.success(`OTP sent to ${email}`);
     } catch { toast.error('Failed to send OTP. Please try again.'); }
@@ -74,7 +77,7 @@ export default function SellerRegisterPage() {
     setLoading(true);
     try {
       // Verify email OTP — creates seller account if new user
-      const res = await api.post('/auth/email/otp/verify', { email, otp: code });
+      const res = await api.post('/auth/email/otp/verify', { email, otp: code, token: otpToken });
       const { access_token, refresh_token, user } = res.data?.data ?? {};
       if (!access_token) throw new Error('No token');
 

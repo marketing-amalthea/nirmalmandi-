@@ -38,6 +38,7 @@ function OtpRow({ value, onChange }: { value: string; onChange: (v: string) => v
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [otpToken, setOtpToken] = useState('');
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -46,7 +47,9 @@ export default function AdminLoginPage() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Enter a valid email address'); return; }
     setLoading(true); setError('');
     try {
-      await api.post('/auth/email/otp/send', { email });
+      const sendRes = await api.post('/auth/email/otp/send', { email });
+      const tok = (sendRes.data as { data?: { token?: string } })?.data?.token ?? '';
+      setOtpToken(tok);
       setStep('otp');
     } catch { setError('Failed to send OTP. Please try again.'); }
     finally { setLoading(false); }
@@ -56,7 +59,7 @@ export default function AdminLoginPage() {
     if (otp.replace(/\s/g, '').length !== 6) { setError('Enter the 6-digit OTP'); return; }
     setLoading(true); setError('');
     try {
-      const res = await api.post('/auth/email/otp/verify', { email, otp: otp.replace(/\s/g, '') });
+      const res = await api.post('/auth/email/otp/verify', { email, otp: otp.replace(/\s/g, ''), token: otpToken });
       const token = res.data?.data?.access_token;
       const user = res.data?.data?.user;
       if (!token) { setError('Login failed. Please try again.'); return; }

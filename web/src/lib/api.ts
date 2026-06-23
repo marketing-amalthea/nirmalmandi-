@@ -33,9 +33,9 @@ export const authApi = {
   // Email OTP
   sendEmailOtp: (email: string) =>
     api.post('/auth/email/otp/send', { email }),
-  verifyEmailOtp: (email: string, otp: string) =>
+  verifyEmailOtp: (email: string, otp: string, token?: string) =>
     api.post<{ data: { access_token: string; refresh_token: string; user: { id: string; name: string; email: string; role: string }; registered: boolean } }>(
-      '/auth/email/otp/verify', { email, otp }
+      '/auth/email/otp/verify', { email, otp, token }
     ),
   // Google
   googleLogin: (id_token: string) =>
