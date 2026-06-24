@@ -24,6 +24,28 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'inventory-service' }));
+
+// Temporary debug — shows which secret is active (masked) + validates a token
+app.post('/debug-auth', (req, res) => {
+  const jwt = require('jsonwebtoken');
+  const secret = (process.env.INTERNAL_SERVICE_SECRET || '').replace(/['"]/g, '').trim();
+  const fallback = 'nm-jwt-secret-2026';
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  const secretMasked = secret ? secret.slice(0, 4) + '***' + secret.slice(-4) : '(not set)';
+
+  const results: Record<string, unknown> = { secret_present: !!secret, secret_masked: secretMasked };
+
+  for (const [label, s] of [['env_secret', secret || fallback], ['fallback', fallback]] as [string, string][]) {
+    try {
+      const decoded = jwt.verify(token, s, { algorithms: ['HS256'] });
+      results[label] = { valid: true, payload: decoded };
+      break;
+    } catch (e: unknown) {
+      results[label] = { valid: false, error: (e as Error).message };
+    }
+  }
+  res.json(results);
+});
 app.use('/listings', listingsRouter);
 app.use('/sectors', sectorsRouter);
 app.use('/images', imagesRouter);
