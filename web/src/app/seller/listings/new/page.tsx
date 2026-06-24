@@ -270,7 +270,7 @@ export default function NewListingPage() {
     }
 
     if (!draft.asking_price || Number(draft.asking_price) <= 0) errs.asking_price = 'Enter a valid asking price';
-    if (draft.price_type === 'best_offer' && draft.floor_price && Number(draft.floor_price) >= Number(draft.asking_price)) {
+    if (draft.price_type === 'offer' && draft.floor_price && Number(draft.floor_price) >= Number(draft.asking_price)) {
       errs.floor_price = 'Floor price must be less than asking price';
     }
 
@@ -470,7 +470,7 @@ export default function NewListingPage() {
         mrp: draft.mrp ? Number(draft.mrp) : undefined,
         state: draft.pickup_state || '',
         city: draft.pickup_city || '',
-        urgency_days: draft.urgency >= 4 ? draft.urgency : (draft.must_sell && draft.urgency_days ? Number(draft.urgency_days) : undefined),
+        urgency_days: draft.must_sell && draft.urgency_days ? Number(draft.urgency_days) : undefined,
         images: draft.images.filter((i) => i.status === 'done' && i.imageUrl).map((i) => i.imageUrl),
       });
       toast.success('Listing is live!');
@@ -722,7 +722,7 @@ export default function NewListingPage() {
                 </div>
               </div>
 
-              {draft.price_type === 'best_offer' && (
+              {draft.price_type === 'offer' && (
                 <div>
                   <label style={labelStyle}>Floor price (₹)</label>
                   <input
