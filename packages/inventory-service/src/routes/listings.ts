@@ -56,40 +56,43 @@ listingsRouter.post(
     const data = parsed.data;
     const urgency_score = computeUrgencyScore(data.urgency_days, data.dead_stock_type, data.expiry_date);
 
-    const listing = await withTransaction(async (client) => {
-      const id = uuidv4();
-      await client.query(
-        `INSERT INTO listings
-          (id, seller_id, sector_id, title, description, dead_stock_type, condition_grade,
-           lot_type, total_quantity, available_quantity, moq, unit, price_type, asking_price,
-           floor_price, reserve_price, mrp, sector_specific_fields, images, state, city,
-           urgency_days, urgency_score, expiry_date, auction_ends_at, flash_sale_ends_at,
-           warehouse_location_id, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb,
-                 $19::text[],$20,$21,$22,$23,$24,$25,$26,$27,'live')`,
-        [
-          id, req.user!.profile_id, data.sector_id, data.title, data.description ?? null,
-          data.dead_stock_type, data.condition_grade, data.lot_type,
-          data.total_quantity, data.moq, data.unit, data.price_type,
-          data.asking_price, data.floor_price ?? null, data.reserve_price ?? null,
-          data.mrp ?? null, JSON.stringify(data.sector_specific_fields),
-          data.images, data.state, data.city,
-          data.urgency_days ?? null, urgency_score, data.expiry_date ?? null,
-          data.auction_ends_at ?? null, data.flash_sale_ends_at ?? null,
-          data.warehouse_location_id ?? null,
-        ]
+    try {
+      const listing = await withTransaction(async (client) => {
+        const id = uuidv4();
+        await client.query(
+          `INSERT INTO listings
+            (id, seller_id, sector_id, title, description, dead_stock_type, condition_grade,
+             lot_type, total_quantity, available_quantity, moq, unit, price_type, asking_price,
+             floor_price, mrp, sector_specific_fields, images, state, city,
+             urgency_days, urgency_score, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,
+                   $17::text[],$18,$19,$20,$21,$22,'live')`,
+          [
+            id, req.user!.profile_id, data.sector_id, data.title, data.description ?? null,
+            data.dead_stock_type, data.condition_grade, data.lot_type,
+            data.total_quantity, data.moq, data.unit, data.price_type,
+            data.asking_price, data.floor_price ?? null,
+            data.mrp ?? null, JSON.stringify(data.sector_specific_fields),
+            data.images, data.state, data.city,
+            data.urgency_days ?? null, urgency_score,
+          ]
+        );
+        const listing = await client.query('SELECT * FROM listings WHERE id = $1', [id]);
+        return listing.rows[0];
+      });
+
+      // Sync to Elasticsearch (async — don't block response)
+      syncListingToElasticsearch(listing).catch(err =>
+        logger.error('ES sync failed', { listingId: listing.id, error: err.message })
       );
-      const listing = await client.query('SELECT * FROM listings WHERE id = $1', [id]);
-      return listing.rows[0];
-    });
 
-    // Sync to Elasticsearch (async — don't block response)
-    syncListingToElasticsearch(listing).catch(err =>
-      logger.error('ES sync failed', { listingId: listing.id, error: err.message })
-    );
-
-    logger.info('Listing created', { listingId: listing.id, sellerId: req.user!.profile_id });
-    res.status(201).json(successResponse(listing, 'Listing created successfully'));
+      logger.info('Listing created', { listingId: listing.id, sellerId: req.user!.profile_id });
+      res.status(201).json(successResponse(listing, 'Listing created successfully'));
+    } catch (err: unknown) {
+      const msg = (err as Error).message ?? 'Unknown error';
+      logger.error('Listing create failed', { error: msg });
+      res.status(500).json(errorResponse(`Failed to create listing: ${msg}`, 'DB_ERROR'));
+    }
   }
 );
 
