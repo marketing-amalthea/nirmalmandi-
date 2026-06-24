@@ -37,8 +37,14 @@ export default function SellerRegisterPage() {
       toast.success('Account created! Complete your profile to unlock payouts.');
       router.push('/seller/dashboard');
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { error?: string } } };
-      toast.error(err?.response?.data?.error ?? 'Registration failed. Please try again.');
+      const err = e as { response?: { status?: number; data?: { error?: string } } };
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.error ?? 'Registration failed. Please try again.';
+      if (status === 409) {
+        toast.error('Email already registered — sign in instead.');
+      } else {
+        toast.error(`(${status ?? 'error'}): ${msg}`);
+      }
     } finally { setLoading(false); }
   }
 
@@ -104,7 +110,7 @@ export default function SellerRegisterPage() {
             </button>
           </form>
 
-          <div style={{ marginTop: 20 }} className="nm-card" style={{ padding: 16, marginTop: 20 }}>
+          <div className="nm-card" style={{ padding: 16, marginTop: 20 }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--nm-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>What happens next</p>
             {['Access seller dashboard immediately','Add listings and start selling','Complete business & bank details in Profile (for payouts)'].map((t, i) => (
               <div key={i} className="flex items-center gap-3" style={{ marginBottom: 7 }}>
