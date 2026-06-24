@@ -41,14 +41,14 @@ const nextConfig = {
       { source: '/api/admin/transactions/:path*',    destination: `${ORDER}/admin/transactions/:path*` },
       { source: '/api/admin/transactions',           destination: `${ORDER}/admin/transactions` },
 
-      // ── Dispute service ──────────────────────────────────────────────────
-      { source: '/api/admin/disputes/:path*',        destination: `${DISPUTE}/admin/disputes/:path*` },
-      { source: '/api/admin/disputes',               destination: `${DISPUTE}/admin/disputes` },
+      // ── Dispute service — admin routes are in order-service ─────────────
+      { source: '/api/admin/disputes/:path*',        destination: `${ORDER}/admin/disputes/:path*` },
+      { source: '/api/admin/disputes',               destination: `${ORDER}/admin/disputes` },
 
       // ── Invoice service ──────────────────────────────────────────────────
       { source: '/api/invoices/:path*',              destination: `${INVOICE}/invoices/:path*` },
 
-      // ── Analytics — audit log lives here ────────────────────────────────
+      // ── Analytics — audit log lives in analytics-service /admin/audit ────
       { source: '/api/admin/audit-log/:path*',       destination: `${ANALYTICS}/admin/audit-log/:path*` },
       { source: '/api/admin/audit-log',              destination: `${ANALYTICS}/admin/audit-log` },
 
@@ -57,9 +57,9 @@ const nextConfig = {
       { source: '/api/admin/payouts',                destination: `${PAYMENT}/admin/payouts` },
       { source: '/api/payments/:path*',              destination: `${PAYMENT}/payments/:path*` },
 
-      // ── Notification service ─────────────────────────────────────────────
-      { source: '/api/admin/notifications/:path*',   destination: `${NOTIF}/admin/notifications/:path*` },
-      { source: '/api/admin/notifications',          destination: `${NOTIF}/admin/notifications` },
+      // ── Notification service — admin routes are under /notifications/admin/
+      { source: '/api/admin/notifications/:path*',   destination: `${NOTIF}/notifications/admin/:path*` },
+      { source: '/api/admin/notifications',          destination: `${NOTIF}/notifications/admin` },
 
       // ── Analytics service ────────────────────────────────────────────────
       { source: '/api/admin/stats/:path*',           destination: `${ANALYTICS}/admin/stats/:path*` },

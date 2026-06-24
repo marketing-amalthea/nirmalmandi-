@@ -30,12 +30,12 @@ const sidebarFooter = (
 );
 
 const REASONS = [
-  { key: 'not_as_described', label: 'Item not as described' },
+  { key: 'not_received',      label: 'Never delivered' },
+  { key: 'wrong_item',        label: 'Item not as described / wrong item' },
+  { key: 'damaged',           label: 'Damaged on arrival' },
+  { key: 'quality_issue',     label: 'Wrong grade / quality issue' },
   { key: 'quantity_mismatch', label: 'Quantity mismatch' },
-  { key: 'damaged', label: 'Damaged on arrival' },
-  { key: 'wrong_grade', label: 'Wrong grade' },
-  { key: 'not_received', label: 'Never delivered' },
-  { key: 'other', label: 'Other' },
+  { key: 'other',             label: 'Other' },
 ];
 
 const MAX_FILES = 3;
@@ -72,23 +72,27 @@ export default function DisputePage() {
     enabled: !!id && isAuthenticated(),
   });
 
-  async function uploadFile(file: File) {
-    const newFile: UploadedFile = {
-      file, key: '', uploading: true, done: false, error: false,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
-    };
-    setUploadedFiles((prev) => [...prev, newFile]);
+  async function uploadEvidenceFile(file: File, disputeId: string) {
     try {
-      const res = await disputeApi.getUploadUrl('pending', file.name, file.type);
-      const payload = res.data as unknown as { data?: { uploadUrl: string; key: string } } | { uploadUrl: string; key: string };
-      const { uploadUrl, key } = (payload as { data?: { uploadUrl: string; key: string } })?.data
-        ?? payload as { uploadUrl: string; key: string };
-      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+      const res = await disputeApi.uploadEvidence(disputeId, file.name, file.type);
+      const payload = res.data as unknown as { data?: { presigned_url: string; key: string } };
+      const { presigned_url: uploadUrl, key } = payload?.data ?? { presigned_url: '', key: '' };
+      if (uploadUrl) {
+        await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+      }
       setUploadedFiles((prev) => prev.map((f) => f.file === file ? { ...f, uploading: false, done: true, key } : f));
     } catch {
       setUploadedFiles((prev) => prev.map((f) => f.file === file ? { ...f, uploading: false, error: true } : f));
       toast.error(`Failed to upload ${file.name}`);
     }
+  }
+
+  function uploadFile(file: File) {
+    const newFile: UploadedFile = {
+      file, key: '', uploading: false, done: false, error: false,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+    };
+    setUploadedFiles((prev) => [...prev, newFile]);
   }
 
   function handleFiles(files: FileList | File[]) {
@@ -113,10 +117,19 @@ export default function DisputePage() {
   async function handleSubmit() {
     if (!reason) { toast.error('Please select a reason'); return; }
     if (description.trim().length < 20) { toast.error('Please describe the issue (min 20 characters)'); return; }
-    const evidenceKeys = uploadedFiles.filter((f) => f.done).map((f) => f.key);
     setSubmitting(true);
     try {
-      await disputeApi.raiseDispute({ order_id: id, reason, description, evidence_keys: evidenceKeys });
+      // Step 1: raise dispute → get disputeId
+      const res = await disputeApi.raiseDispute({ orderId: id, reason, description });
+      const disputeId = (res.data as unknown as { data?: { disputeId: string } })?.data?.disputeId;
+
+      // Step 2: upload evidence files now that we have a real disputeId
+      if (disputeId && uploadedFiles.length > 0) {
+        await Promise.allSettled(
+          uploadedFiles.map((f) => uploadEvidenceFile(f.file, disputeId))
+        );
+      }
+
       toast.success('Dispute raised. Escrow frozen.');
       router.push(`/orders/${id}`);
     } catch {

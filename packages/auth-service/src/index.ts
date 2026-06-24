@@ -8,6 +8,7 @@ import { logger } from '@nirmalmandi/shared';
 import { authRouter } from './routes/auth';
 import { profileRouter } from './routes/profile';
 import { adminUsersRouter } from './routes/adminUsers';
+import { adminKycRouter } from './routes/adminKyc';
 import { consentRouter } from './routes/consent';
 import { docusignRouter } from './routes/docusign';
 
@@ -22,6 +23,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'auth-servic
 app.use('/auth', authRouter);
 app.use('/profile', profileRouter);
 app.use('/admin/users', adminUsersRouter);
+app.use('/admin/kyc', adminKycRouter);
 app.use('/consent', consentRouter);
 app.use('/esign', docusignRouter);
 

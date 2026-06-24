@@ -6,6 +6,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { logger } from '@nirmalmandi/shared';
 import { paymentsRouter } from './routes/payments';
+import { adminPayoutsRouter } from './routes/adminPayouts';
 
 const app = express();
 const PORT = process.env.PAYMENT_SERVICE_PORT || 3005;
@@ -19,6 +20,7 @@ app.use(express.json({ limit: '10kb' }));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'payment-service' }));
 app.use('/payments', paymentsRouter);
+app.use('/admin/payouts', adminPayoutsRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error in payment-service', { error: err.message });

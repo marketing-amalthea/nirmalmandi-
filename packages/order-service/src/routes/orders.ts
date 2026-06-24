@@ -476,3 +476,92 @@ ordersRouter.patch(
     res.json(successResponse({ order_id: order.id, status: 'cancelled' }, 'Order cancelled'));
   }
 );
+
+// ── PATCH /orders/:id/ship — seller marks order shipped ─────────
+ordersRouter.patch(
+  '/:id/ship',
+  authenticate,
+  requireRole('seller'),
+  async (req: Request, res: Response) => {
+    const { tracking_number, courier } = req.body as { tracking_number?: string; courier?: string };
+    const order = await queryOne<{ id: string; seller_id: string; buyer_id: string; status: string }>(
+      'SELECT id, seller_id, buyer_id, status FROM orders WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (!order) return res.status(404).json(errorResponse('Order not found', 'NOT_FOUND'));
+    if (order.seller_id !== req.user!.profile_id) return res.status(403).json(errorResponse('Access denied', 'FORBIDDEN'));
+    if (!['paid', 'payment_confirmed', 'confirmed', 'payment_received'].includes(order.status)) {
+      return res.status(409).json(errorResponse(`Cannot ship order in status: ${order.status}`, 'INVALID_STATUS'));
+    }
+
+    await query(
+      `UPDATE orders SET status = 'shipped',
+       tracking_number = COALESCE($2, tracking_number),
+       courier = COALESCE($3, courier),
+       updated_at = NOW() WHERE id = $1`,
+      [order.id, tracking_number ?? null, courier ?? null]
+    );
+
+    await emitNotification({
+      type: 'order_shipped',
+      order_id: order.id,
+      buyer_id: order.buyer_id,
+      seller_id: order.seller_id,
+      tracking_number,
+      courier,
+    });
+
+    res.json(successResponse({ order_id: order.id, status: 'shipped', tracking_number, courier }));
+  }
+);
+
+// ── GET /seller/payouts — seller payout history ──────────────────
+ordersRouter.get(
+  '/seller/payouts',
+  authenticate,
+  requireRole('seller'),
+  async (req: Request, res: Response) => {
+    const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10));
+    const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit ?? '20'), 10)));
+    const offset = (page - 1) * limit;
+
+    const rows = await query(
+      `SELECT p.*, o.order_number, l.title AS listing_title
+       FROM payouts p
+       JOIN orders o ON o.id = p.order_id
+       JOIN listings l ON l.id = o.listing_id
+       WHERE p.seller_id = $1
+       ORDER BY p.created_at DESC LIMIT $2 OFFSET $3`,
+      [req.user!.profile_id, limit, offset]
+    );
+
+    const [{ count }] = await query<{ count: string }>(
+      'SELECT COUNT(*) FROM payouts WHERE seller_id = $1',
+      [req.user!.profile_id]
+    );
+
+    res.json(successResponse({ payouts: rows, total: parseInt(count, 10), page, limit }));
+  }
+);
+
+// ── GET /seller/escrow-status — seller escrow summary ───────────
+ordersRouter.get(
+  '/seller/escrow-status',
+  authenticate,
+  requireRole('seller'),
+  async (req: Request, res: Response) => {
+    const rows = await query<{ escrow_status: string; count: string; total: string }>(
+      `SELECT ea.status AS escrow_status, COUNT(*) AS count, COALESCE(SUM(ea.net_payout),0) AS total
+       FROM escrow_accounts ea
+       JOIN orders o ON o.id = ea.order_id
+       WHERE o.seller_id = $1
+       GROUP BY ea.status`,
+      [req.user!.profile_id]
+    );
+    const byStatus = Object.fromEntries(
+      rows.map(r => [r.escrow_status, { count: parseInt(r.count, 10), total: parseFloat(r.total) }])
+    );
+    res.json(successResponse(byStatus));
+  }
+);

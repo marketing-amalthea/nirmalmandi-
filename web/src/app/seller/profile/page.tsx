@@ -70,8 +70,12 @@ export default function SellerProfilePage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['seller-profile'],
-    queryFn: () => api.get<{ data: SellerProfile }>('/seller/profile'),
-    select: (res) => (res.data as unknown as { data: SellerProfile })?.data ?? res.data,
+    queryFn: () => api.get('/profile/me'),
+    select: (res) => {
+      const d = (res.data as unknown as { data?: { name?: string; email?: string; phone?: string; profile?: Partial<SellerProfile> } })?.data;
+      if (!d) return undefined as unknown as SellerProfile;
+      return { ...d.profile, name: d.name, email: d.email, phone: d.phone } as SellerProfile;
+    },
     enabled: ready && isAuthenticated(),
     retry: 1,
   });

@@ -86,6 +86,13 @@ module.exports = {
       { source: '/api/logistics/freight/:path*',   destination: `${LOGISTICS}/freight/:path*` },
       { source: '/api/logistics/shipments/:path*', destination: `${LOGISTICS}/shipments/:path*` },
 
+      // ── Seller order actions → order-service (must be before analytics catch-all)
+      { source: '/api/seller/orders/:id/ship',    destination: `${ORDER}/orders/:id/ship` },
+      { source: '/api/seller/orders/:path*',      destination: `${ORDER}/orders/:path*` },
+      { source: '/api/seller/payouts/:path*',     destination: `${ORDER}/orders/seller/payouts/:path*` },
+      { source: '/api/seller/payouts',            destination: `${ORDER}/orders/seller/payouts` },
+      { source: '/api/seller/escrow-status',      destination: `${ORDER}/orders/seller/escrow-status` },
+
       // ── Analytics service ────────────────────────────────────────────────
       { source: '/api/seller/dashboard',                        destination: `${ANALYTICS}/seller/dashboard` },
       { source: '/api/seller/analytics',                        destination: `${ANALYTICS}/seller/analytics` },

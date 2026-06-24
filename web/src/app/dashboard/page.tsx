@@ -43,8 +43,12 @@ export default function BuyerDashboard() {
     queryKey: ['buyer-orders-dashboard'],
     queryFn: async () => {
       const res = await ordersApi.getMyOrders({ limit: 10 } as Parameters<typeof ordersApi.getMyOrders>[0]);
-      const d = (res.data as unknown as { data?: Order[] })?.data ?? res.data;
-      return Array.isArray(d) ? d : [];
+      // API returns { success, data: { orders: [...], total, page, limit } }
+      const payload = res.data as unknown as { data?: { orders?: Order[] } | Order[] };
+      const inner = payload?.data;
+      if (Array.isArray(inner)) return inner;
+      if (inner && 'orders' in inner && Array.isArray(inner.orders)) return inner.orders;
+      return [];
     },
     enabled: isAuthenticated(),
   });

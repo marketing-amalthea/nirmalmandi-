@@ -77,12 +77,12 @@ const INITIAL_DRAFT: ListingDraft = {
 };
 
 const DEAD_STOCK_TYPES = [
-  { value: 'overstock', label: 'Overstock' },
-  { value: 'returns', label: 'Returns' },
-  { value: 'seasonal', label: 'Seasonal' },
-  { value: 'discontinued', label: 'Discontinued' },
-  { value: 'samples', label: 'Samples' },
-  { value: 'other', label: 'Other' },
+  { value: 'excess',             label: 'Overstock / Excess' },
+  { value: 'returns',            label: 'Returns' },
+  { value: 'seasonal',           label: 'Seasonal' },
+  { value: 'obsolete',           label: 'Discontinued / Obsolete' },
+  { value: 'near_expiry',        label: 'Near Expiry' },
+  { value: 'damaged_packaging',  label: 'Damaged Packaging' },
 ];
 
 const CONDITION_GRADES = [
@@ -93,16 +93,16 @@ const CONDITION_GRADES = [
 ];
 
 const LOT_TYPES = [
-  { value: 'full', label: 'Full lot only' },
-  { value: 'partial', label: 'Partial lots' },
-  { value: 'per_unit', label: 'Per unit' },
+  { value: 'full_lot',  label: 'Full lot only' },
+  { value: 'partial',   label: 'Partial lots' },
+  { value: 'per_unit',  label: 'Per unit' },
 ];
 
 const PRICE_TYPES = [
-  { value: 'fixed', label: 'Fixed price' },
-  { value: 'best_offer', label: 'Best offer' },
+  { value: 'fixed',   label: 'Fixed price' },
+  { value: 'offer',   label: 'Best offer' },
   { value: 'auction', label: 'Auction' },
-  { value: 'flash_sale', label: 'Flash sale' },
+  { value: 'flash',   label: 'Flash sale' },
 ];
 
 const UNITS = ['pieces', 'kg', 'boxes', 'cartons', 'pallets', 'units'];

@@ -160,7 +160,7 @@ export const inventoryApi = {
     api.post(`/inventory/listings/${listingId}/watchlist`),
 
   getWatchlist: () =>
-    api.get<Listing[]>('/inventory/watchlist'),
+    api.get<Listing[]>('/buyer/watchlist'),
 };
 
 // ── Orders ────────────────────────────────────────────────────────────────────
@@ -273,16 +273,15 @@ export const addressApi = {
 // ── Disputes ──────────────────────────────────────────────────────────────────
 export const disputeApi = {
   raiseDispute: (data: {
-    order_id: string;
+    orderId: string;
     reason: string;
     description: string;
-    evidence_keys: string[];
-  }) => api.post<{ id: string; status: string }>('/disputes/raise', data),
+  }) => api.post<{ data: { disputeId: string; slaDeadline: string } }>('/disputes/raise', data),
 
-  getUploadUrl: (disputeId: string, filename: string, filetype: string) =>
-    api.post<{ uploadUrl: string; key: string }>(`/disputes/${disputeId}/evidence`, {
-      filename,
-      filetype,
+  uploadEvidence: (disputeId: string, filename: string, filetype: string) =>
+    api.post<{ data: { presigned_url: string; key: string } }>(`/disputes/${disputeId}/evidence`, {
+      fileName: filename,
+      fileType: filetype,
     }),
 };
 
