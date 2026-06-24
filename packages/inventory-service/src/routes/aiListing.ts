@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, successResponse, errorResponse, logger } from '@nirmalmandi/shared';
+import OpenAI from 'openai';
+
 export const aiListingRouter = Router();
 
 // GET /ai/listing/health — confirm route is reachable and key is present
@@ -42,11 +44,9 @@ dead_stock_type must be one of: excess, near_expiry, obsolete, seasonal, returns
 condition_grade must be one of: A, B, C, D
 unit must be one of: pieces, kg, boxes, cartons, pallets, units, meters, sets, bags, strips, bottles, liters`;
 
-function getClient() {
+function getClient(): OpenAI {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('OPENAI_API_KEY not configured');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const OpenAI = require('openai').default;
   return new OpenAI({ apiKey: key });
 }
 
