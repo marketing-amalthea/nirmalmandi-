@@ -66,7 +66,7 @@ listingsRouter.post(
              floor_price, mrp, sector_specific_fields, images, state, city,
              urgency_days, urgency_score, status)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,
-                   $17::text[],$18,$19,$20,$21,$22,'live')`,
+                   $17::text[],$18,$19,$20,$21,'live')`,
           [
             id, req.user!.profile_id, data.sector_id, data.title, data.description ?? null,
             data.dead_stock_type, data.condition_grade, data.lot_type,
