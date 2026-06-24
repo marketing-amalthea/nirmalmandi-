@@ -10,9 +10,25 @@ declare global {
   }
 }
 
-// HS256 with INTERNAL_SERVICE_SECRET — works on Railway without RSA key format issues
-function getJwtSecret(): string {
-  return (process.env.INTERNAL_SERVICE_SECRET || 'nm-jwt-secret-2026').replace(/['"]/g, '');
+const FALLBACK_SECRET = 'nm-jwt-secret-2026';
+
+function getSecrets(): string[] {
+  const env = (process.env.INTERNAL_SERVICE_SECRET || '').replace(/['"]/g, '').trim();
+  // Try env var first, then fallback — handles Railway secret mismatch across services
+  const secrets = env ? [env, FALLBACK_SECRET] : [FALLBACK_SECRET];
+  return [...new Set(secrets)]; // deduplicate if env === fallback
+}
+
+function verifyToken(token: string): JwtPayload {
+  const secrets = getSecrets();
+  for (const secret of secrets) {
+    try {
+      return jwt.verify(token, secret, { algorithms: ['HS256'] }) as JwtPayload;
+    } catch {
+      // try next secret
+    }
+  }
+  throw new Error('TOKEN_INVALID');
 }
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
@@ -23,8 +39,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   }
   const token = header.slice(7);
   try {
-    const payload = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] }) as JwtPayload;
-    req.user = payload;
+    req.user = verifyToken(token);
     next();
   } catch {
     res.status(401).json(errorResponse('Invalid or expired token', 'TOKEN_INVALID'));
@@ -49,8 +64,7 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction): 
   const header = req.headers.authorization;
   if (header?.startsWith('Bearer ')) {
     try {
-      const token = header.slice(7);
-      req.user = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] }) as JwtPayload;
+      req.user = verifyToken(header.slice(7));
     } catch {
       // ignore — optional auth
     }
