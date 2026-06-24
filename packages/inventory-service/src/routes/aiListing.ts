@@ -50,8 +50,8 @@ function getClient(): OpenAI {
   return new OpenAI({ apiKey: key });
 }
 
-// POST /ai/listing/prompt — natural language → structured listing fields
-aiListingRouter.post('/listing/prompt', authenticate, async (req: Request, res: Response) => {
+// POST /ai/listing/prompt — natural language → structured listing fields (no auth required)
+aiListingRouter.post('/listing/prompt', async (req: Request, res: Response) => {
   const body = req.body as {
     seller_prompt?: string;
     message?: string;

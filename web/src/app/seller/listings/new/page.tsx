@@ -176,12 +176,9 @@ export default function NewListingPage() {
     setAiLoading(true);
     try {
       const res = await aiApi.enhanceListing(aiPrompt, aiConversationHistory);
-      const data = res.data as unknown as {
-        conversational_response?: string;
-        extracted_fields?: Record<string, unknown>;
-        detected_sector?: string;
-        questions?: string[];
-      };
+      // Backend wraps in { success, data: {...} }
+      const raw = res.data as unknown as { data?: { conversational_response?: string; extracted_fields?: Record<string, unknown>; detected_sector?: string; questions?: string[] } } | { conversational_response?: string; extracted_fields?: Record<string, unknown>; detected_sector?: string; questions?: string[] };
+      const data = (raw as { data?: Record<string, unknown> })?.data ?? raw as Record<string, unknown>;
       const extracted = data.extracted_fields ?? {};
       const response = data.conversational_response ?? '';
 
@@ -213,8 +210,11 @@ export default function NewListingPage() {
       }
 
       toast.success('AI extracted listing details. Review and confirm below.');
-    } catch {
-      toast.error('AI service unavailable. Fill in the form manually.');
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: { error?: string } }; message?: string };
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.error ?? err?.message ?? 'Unknown error';
+      toast.error(`AI error ${status ?? ''}: ${msg}`);
     } finally {
       setAiLoading(false);
     }
