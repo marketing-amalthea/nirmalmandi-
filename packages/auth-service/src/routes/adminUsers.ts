@@ -52,8 +52,8 @@ adminUsersRouter.get('/', authenticate, requireAdmin as any, async (req: Request
       `SELECT u.id, u.phone, u.role, u.status,
               u.name           AS "fullName",
               u.created_at     AS "createdAt",
-              COALESCE(sp.kyc_status, 'n/a')      AS "kycStatus",
-              COALESCE(sp.verification_tier, 0)   AS "verificationTier",
+              COALESCE(sp.kyc_status, 'n/a')        AS "kycStatus",
+              COALESCE(sp.verification_tier, 'n/a') AS "verificationTier",
               sp.business_name AS "businessName",
               sp.gst_number    AS "gstin",
               (sp.bank_account_id IS NOT NULL) AS "bankAccountVerified"

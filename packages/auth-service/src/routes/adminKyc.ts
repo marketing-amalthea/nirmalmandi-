@@ -32,7 +32,7 @@ adminKycRouter.get('/', authenticate, requireAdmin as never, async (req: Request
     status ? [status] : []
   );
 
-  res.json(successResponse({ data: rows, total: parseInt(count, 10), page, limit }));
+  res.json(successResponse({ rows, total: parseInt(count, 10), page, limit }));
 });
 
 // GET /admin/kyc/stats
@@ -40,8 +40,16 @@ adminKycRouter.get('/stats', authenticate, requireAdmin as never, async (_req, r
   const rows = await query<{ kyc_status: string; count: string }>(
     `SELECT kyc_status, COUNT(*) AS count FROM seller_profiles GROUP BY kyc_status`
   );
-  const stats = Object.fromEntries(rows.map(r => [r.kyc_status, parseInt(r.count, 10)]));
-  res.json(successResponse(stats));
+  const byStatus = Object.fromEntries(rows.map(r => [r.kyc_status, parseInt(r.count, 10)]));
+  res.json(successResponse({
+    pending: byStatus['pending'] ?? 0,
+    in_review: byStatus['in_review'] ?? 0,
+    approved: byStatus['approved'] ?? 0,
+    rejected: byStatus['rejected'] ?? 0,
+    approvedToday: 0,
+    rejectedToday: 0,
+    avgReviewTimeHours: 0,
+  }));
 });
 
 // GET /admin/kyc/pending-count
