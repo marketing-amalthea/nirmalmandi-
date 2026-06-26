@@ -63,16 +63,15 @@ listingsRouter.post(
           `INSERT INTO listings
             (id, seller_id, sector_id, title, description, dead_stock_type, condition_grade,
              lot_type, total_quantity, available_quantity, moq, unit, price_type, asking_price,
-             floor_price, mrp, sector_specific_fields, images, state, city,
-             urgency_days, urgency_score, status)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,
-                   $17::text[],$18,$19,$20,$21,'live')`,
+             floor_price, mrp, images, state, city, urgency_days, urgency_score, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13,$14,$15,
+                   $16::text[],$17,$18,$19,$20,'live')`,
           [
             id, req.user!.profile_id, data.sector_id, data.title, data.description ?? null,
             data.dead_stock_type, data.condition_grade, data.lot_type,
             data.total_quantity, data.moq, data.unit, data.price_type,
             data.asking_price, data.floor_price ?? null,
-            data.mrp ?? null, JSON.stringify(data.sector_specific_fields),
+            data.mrp ?? null,
             data.images, data.state, data.city,
             data.urgency_days ?? null, urgency_score,
           ]
@@ -89,9 +88,10 @@ listingsRouter.post(
       logger.info('Listing created', { listingId: listing.id, sellerId: req.user!.profile_id });
       res.status(201).json(successResponse(listing, 'Listing created successfully'));
     } catch (err: unknown) {
-      const msg = (err as Error).message ?? 'Unknown error';
-      logger.error('Listing create failed', { error: msg });
-      res.status(500).json(errorResponse(`Failed to create listing: ${msg}`, 'DB_ERROR'));
+      const e = err as { message?: string; detail?: string; code?: string };
+      const msg = e.message || e.detail || e.code || String(err);
+      logger.error('Listing create failed', { error: msg, code: e.code, detail: e.detail });
+      res.status(500).json(errorResponse(`DB error ${e.code ?? ''}: ${msg}`, 'DB_ERROR'));
     }
   }
 );
