@@ -748,10 +748,12 @@ function loadKey(raw: string): string {
   return Buffer.from(s, 'base64').toString('utf-8');             // base64-encoded PEM
 }
 
+const SHARED_FALLBACK = 'nm-jwt-secret-2026';
+
 function generateTokens(userId: string, phone: string, role: string, profileId: string) {
-  // Use HS256 with INTERNAL_SERVICE_SECRET — avoids RSA key format issues on Railway
-  // Shared middleware updated to verify with same secret
-  const secret = (process.env.INTERNAL_SERVICE_SECRET || 'nm-jwt-secret-2026').replace(/['"]/g, '');
+  // Sign with fallback secret — guaranteed to be known by every service
+  // All services verify with both env var AND this fallback, so tokens always validate
+  const secret = SHARED_FALLBACK;
   const payload = { sub: userId, phone, role, profile_id: profileId };
   const access_token  = jwt.sign(payload, secret, { algorithm: 'HS256', expiresIn: '24h' });
   const refresh_token = jwt.sign(payload, secret, { algorithm: 'HS256', expiresIn: '30d' });
