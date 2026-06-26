@@ -43,7 +43,7 @@ profileRouter.patch('/me', async (req: Request, res: Response) => {
   const schema = z.object({
     name: z.string().min(2).max(255).optional(),
     email: z.string().email().optional(),
-    language_preference: z.enum(['en', 'hi']).optional(),
+    language_preference: z.enum(['en', 'hi', 'ta', 'te', 'kn', 'mr', 'bn', 'gu']).optional(),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {

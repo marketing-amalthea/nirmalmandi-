@@ -19,7 +19,16 @@ const INDIAN_STATES = [
   'Delhi', 'Jammu & Kashmir', 'Ladakh',
 ];
 
-const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Marathi', 'Bengali', 'Gujarati'];
+const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'hi', label: 'Hindi' },
+  { code: 'ta', label: 'Tamil' },
+  { code: 'te', label: 'Telugu' },
+  { code: 'kn', label: 'Kannada' },
+  { code: 'mr', label: 'Marathi' },
+  { code: 'bn', label: 'Bengali' },
+  { code: 'gu', label: 'Gujarati' },
+];
 const BUSINESS_TYPES = ['manufacturer', 'distributor', 'retailer', 'wholesaler'];
 
 interface SellerProfile {
@@ -118,7 +127,7 @@ export default function SellerProfilePage() {
       city: profile?.city ?? '',
       address_line1: profile?.address_line1 ?? '',
       pincode: profile?.pincode ?? '',
-      language_preference: profile?.language_preference ?? 'English',
+      language_preference: profile?.language_preference ?? 'en',
     });
     setEditing(true);
   }
@@ -242,9 +251,9 @@ export default function SellerProfilePage() {
                 <input value={form.msme_number ?? ''} onChange={e => set('msme_number', e.target.value)} className="nm-input num" placeholder="UDYAM-XX-00-0000000" />
               </Field>
 
-              <Field label="Language" value={profile?.language_preference ?? 'English'} editing={editing}>
-                <select value={form.language_preference ?? 'English'} onChange={e => set('language_preference', e.target.value)} className="nm-select">
-                  {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+              <Field label="Language" value={LANGUAGES.find(l => l.code === profile?.language_preference)?.label ?? 'English'} editing={editing}>
+                <select value={form.language_preference ?? 'en'} onChange={e => set('language_preference', e.target.value)} className="nm-select">
+                  {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
                 </select>
               </Field>
             </div>
