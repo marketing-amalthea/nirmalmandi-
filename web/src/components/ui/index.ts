@@ -6,6 +6,7 @@ export type { NavItem } from './Sidebar';
 export { default as Topbar } from './Topbar';
 export { default as TopNav } from './TopNav';
 export { default as AppShell } from './AppShell';
+export { default as SellerAppShell } from './SellerAppShell';
 export { default as SectionCard } from './SectionCard';
 export { default as ListingCard, inr } from './ListingCard';
 export { default as Toggle } from './Toggle';
