@@ -4,21 +4,12 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, ShoppingBag, Package, Heart, Gift, User, ShoppingCart, IndianRupee, Clock, CheckCircle, Bell, Loader2 } from 'lucide-react';
+import { ShoppingCart, IndianRupee, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import { AppShell, Kpi, Badge, SectionCard, Avatar, inr } from '@/components/ui';
 import PhoneVerificationWidget from '@/components/PhoneVerificationWidget';
-import { type NavItem } from '@/components/ui/Sidebar';
 import { ordersApi, type Order } from '@/lib/api';
 import { isAuthenticated, getUser } from '@/lib/auth';
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard',   href: '/dashboard',   icon: LayoutDashboard },
-  { label: 'Browse lots', href: '/listings',     icon: ShoppingBag },
-  { label: 'Orders',      href: '/orders',       icon: Package },
-  { label: 'Watchlist',   href: '/watchlist',    icon: Heart },
-  { label: 'Referral',    href: '/referral',     icon: Gift },
-  { label: 'Profile',     href: '/profile',      icon: User },
-];
+import { useBuyerNav, BUYER_SIDEBAR_FOOTER } from '@/lib/buyerNav';
 
 function fmt(d: string) {
   return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -34,6 +25,7 @@ function timeAgo(d: string) {
 export default function BuyerDashboard() {
   const router = useRouter();
   const user = getUser();
+  const buyerNav = useBuyerNav();
 
   useEffect(() => {
     if (!isAuthenticated()) router.push('/login');
@@ -57,22 +49,11 @@ export default function BuyerDashboard() {
   const pending      = orders.filter(o => ['pending','pending_payment','paid','confirmed','shipped'].includes(o.status ?? '')).length;
   const delivered    = orders.filter(o => ['delivered','completed'].includes(o.status ?? '')).length;
 
-  const sidebarFooter = (
-    <div style={{ background: 'rgba(255,255,255,.07)', borderRadius: 12, padding: '12px 14px' }}>
-      <div className="flex items-center gap-2.5">
-        <span className="flex items-center justify-center flex-shrink-0" style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--nm-green-soft)', color: 'var(--nm-green)' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </span>
-        <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,.65)', margin: 0, lineHeight: 1.4 }}>Escrow protected — every order is held safe until you confirm delivery.</p>
-      </div>
-    </div>
-  );
-
   return (
     <AppShell
-      navItems={NAV}
+      navItems={buyerNav}
       brandSub="Buyer Portal"
-      sidebarFooter={sidebarFooter}
+      sidebarFooter={BUYER_SIDEBAR_FOOTER}
       title={`Welcome back, ${user?.name ?? user?.phone ?? 'there'}`}
       subtitle={user?.city ? `${user.city}` : undefined}
       actions={
