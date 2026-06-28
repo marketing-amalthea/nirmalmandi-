@@ -112,8 +112,8 @@ export default function SellerDashboardPage() {
         </Link>
       }
     >
-      {/* Onboarding banner — shown when profile is incomplete */}
-      {(!bizName || bizName === name || !d.total_listings) && (
+      {/* Onboarding banner — shown when business name not set or no listings yet */}
+      {(!bizName || bizName === name || !(d.active_listings ?? d.live_listings ?? 1)) && (
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4"
           style={{ background: 'var(--nm-green-soft)', border: '1px solid rgba(31,107,58,.2)', borderRadius: 14, padding: '14px 20px' }}>
           <div>

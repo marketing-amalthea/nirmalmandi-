@@ -752,18 +752,6 @@ export default function NewListingPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label style={labelStyle}>Stock type</label>
-                  <select
-                    value={draft.dead_stock_type}
-                    onChange={(e) => { merge({ dead_stock_type: e.target.value }); clearError('dead_stock_type'); }}
-                    className="nm-select"
-                    style={{ width: '100%' }}
-                  >
-                    <option value="">Select type…</option>
-                    {DEAD_STOCK_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div>
                   <label style={labelStyle}>Lot type *</label>
                   <select
                     value={draft.lot_type}
