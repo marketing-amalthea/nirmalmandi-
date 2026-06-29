@@ -77,9 +77,9 @@ export default function PayoutsPage() {
       </div>
     }>
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <Kpi label="Pending payouts" value={inr(Number(stats?.totalPending ?? 0))} icon={Wallet} />
-        <Kpi label="Processed today" value={inr(Number(stats?.processedTodayCount ?? 0))} icon={Wallet} positive />
-        <Kpi label="On hold" value={inr(Number(stats?.onHoldCount ?? 0))} icon={Wallet} />
+        <Kpi label="Total due" value={inr(Number((stats as Record<string,unknown>)?.totalDue ?? 0))} icon={Wallet} />
+        <Kpi label="Total paid out" value={inr(Number((stats as Record<string,unknown>)?.totalPaid ?? 0))} icon={Wallet} positive />
+        <Kpi label="On hold" value={inr(Number(((stats as Record<string,unknown>)?.byStatus as Record<string,{total?:number}>)?.held?.total ?? 0))} icon={Wallet} />
       </div>
 
       <div className="nm-tabbar mb-5">

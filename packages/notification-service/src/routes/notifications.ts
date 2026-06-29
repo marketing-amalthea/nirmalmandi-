@@ -172,7 +172,7 @@ notificationsRouter.get('/admin/logs', authenticate, requireRole('admin'), async
          FROM notifications n
          LEFT JOIN users u ON n.user_id = u.id
          ${where}
-         ORDER BY n.sent_at DESC
+         ORDER BY n.created_at DESC
          LIMIT $${idx++} OFFSET $${idx++}`,
         [...params, limit, offset]
       ),

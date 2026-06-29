@@ -77,10 +77,14 @@ function ReviewPanel({ submission, onClose, onActionSuccess }: ReviewPanelProps)
     if (!submission) return;
     setLoading(action);
     try {
-      await kycApi.reviewKyc(submission.id, { action, ...extra });
+      // Backend expects { status, note } not { action }
+      const statusMap: Record<string, string> = { approve: 'approved', reject: 'rejected', request_more: 'in_review' };
+      const status = statusMap[action] ?? action;
+      const note = extra?.reason ?? extra?.message ?? extra?.tier ?? undefined;
+      await kycApi.reviewKyc(submission.id, { status, ...(note ? { note } : {}) });
       toast.success(
-        action === 'approve' ? `KYC approved (${extra?.tier ?? 'basic'})`
-          : action === 'reject' ? 'KYC rejected' : 'Additional docs requested'
+        action === 'approve' ? `KYC approved`
+          : action === 'reject' ? 'KYC rejected' : 'Additional documents requested'
       );
       onActionSuccess(); onClose();
     } catch { toast.error('Action failed — please try again'); }
@@ -145,18 +149,20 @@ function ReviewPanel({ submission, onClose, onActionSuccess }: ReviewPanelProps)
             </div>
           </div>
 
-          <p className="label" style={{ marginBottom: 12 }}>Documents ({submission.documents.length})</p>
-          {submission.documents.length === 0 ? (
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(() => { const docs = (submission.documents ?? []) as any[]; return (<>
+          <p className="label" style={{ marginBottom: 12 }}>Documents ({docs.length})</p>
+          {docs.length === 0 ? (
             <p style={{ fontSize: 13, color: 'var(--nm-muted)' }}>No documents uploaded.</p>
           ) : (
             <div className="flex flex-col gap-2">
-              {submission.documents.map((doc) => (
+              {docs.map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between" style={{ padding: 12, border: '1px solid var(--nm-line)', borderRadius: 12 }}>
                   <div className="flex items-center gap-2 min-w-0">
-                    <DocIcon type={doc.documentType} />
+                    <DocIcon type={doc.documentType ?? ''} />
                     <div className="min-w-0">
                       <p className="truncate" style={{ fontSize: 13, color: 'var(--nm-ink)', fontWeight: 600 }}>{doc.filename}</p>
-                      <p style={{ fontSize: 11.5, color: 'var(--nm-muted)', textTransform: 'capitalize' }}>{doc.documentType.replace(/_/g, ' ')}</p>
+                      <p style={{ fontSize: 11.5, color: 'var(--nm-muted)', textTransform: 'capitalize' }}>{(doc.documentType ?? '').replace(/_/g, ' ')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 ml-2">
@@ -167,6 +173,7 @@ function ReviewPanel({ submission, onClose, onActionSuccess }: ReviewPanelProps)
               ))}
             </div>
           )}
+          </>); })()}
 
           {activeAction === 'reject' && (
             <div style={{ marginTop: 24, padding: 16, border: '1px solid var(--nm-red-soft)', borderRadius: 12, background: 'var(--nm-red-soft)' }}>

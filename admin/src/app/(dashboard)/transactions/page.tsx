@@ -87,10 +87,10 @@ export default function TransactionsPage() {
             <tbody>
               {rows.map(o => (
                 <tr key={String(o.id)}>
-                  <td className="disp" style={{ fontWeight: 700, fontSize: 13 }}>{String(o.order_number ?? o.id)}</td>
-                  <td style={{ fontSize: 13 }}>{String(o.buyer_name ?? '—')}</td>
-                  <td style={{ fontSize: 13 }}>{String(o.seller_name ?? '—')}</td>
-                  <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--nm-green)' }}>{inr(Number(o.total_amount ?? 0))}</td>
+                  <td className="disp" style={{ fontWeight: 700, fontSize: 13 }}>{String(o.orderNumber ?? o.order_number ?? o.id)}</td>
+                  <td style={{ fontSize: 13 }}>{String(o.buyerName ?? o.buyer_name ?? '—')}</td>
+                  <td style={{ fontSize: 13 }}>{String(o.sellerName ?? o.seller_name ?? '—')}</td>
+                  <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--nm-green)' }}>{inr(Number(o.totalAmount ?? o.total_amount ?? 0))}</td>
                   <td>
                     {['paid','confirmed','shipped','in_transit'].includes(String(o.status)) && (
                       <span className="nm-pill" style={{ color: 'var(--nm-info)', background: 'var(--nm-info-soft)', fontSize: 11 }}>Holding</span>
@@ -100,7 +100,7 @@ export default function TransactionsPage() {
                     )}
                   </td>
                   <td><Badge status={String(o.status ?? 'Pending').replace(/_/g, ' ')} /></td>
-                  <td style={{ fontSize: 12.5, color: 'var(--nm-muted)' }}>{fmtDate(String(o.created_at ?? ''))}</td>
+                  <td style={{ fontSize: 12.5, color: 'var(--nm-muted)' }}>{fmtDate(String(o.createdAt ?? o.created_at ?? ''))}</td>
                   <td>
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => freeze.mutate(String(o.id))} disabled={freeze.isPending}

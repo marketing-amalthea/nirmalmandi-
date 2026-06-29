@@ -144,8 +144,11 @@ export default function InventoryPage() {
                       <button onClick={() => inventoryApi.featureListing(String(r.id)).then(() => refetch()).catch(() => toast.error('Failed'))}
                         className="nm-btn-soft" style={{ padding: '4px 8px', fontSize: 11 }}>Feature</button>
                       <button onClick={() => {
-                        const action = String(r.status) === 'paused' ? inventoryApi.unfeatureListing : inventoryApi.pauseListing;
-                        action(String(r.id)).then(() => refetch()).catch(() => toast.error('Failed'));
+                        const isPaused = String(r.status) === 'paused';
+                        const action = isPaused
+                          ? () => inventoryApi.bulkAction([String(r.id)], 'activate')
+                          : () => inventoryApi.pauseListing(String(r.id));
+                        action().then(() => refetch()).catch(() => toast.error('Failed'));
                       }}
                         className="nm-btn-secondary" style={{ padding: '4px 8px', fontSize: 11 }}>
                         {String(r.status) === 'paused' ? 'Unpause' : 'Pause'}

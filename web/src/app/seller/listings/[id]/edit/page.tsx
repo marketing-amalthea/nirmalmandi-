@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Loader2, AlertCircle, ArrowLeft, Save, Pause, Play } from 'lucide-react';
@@ -86,7 +86,8 @@ export default function EditListingPage() {
   useEffect(() => { if (!isAuthenticated()) router.replace('/login'); }, [router]);
 
   // ── Fetch existing listing ──────────────────────────────────
-  const { isLoading, isError } = useQuery({
+  const initialized = useRef(false);
+  const { data: listingData, isLoading, isError } = useQuery({
     queryKey: ['listing-edit', id],
     queryFn: () => inventoryApi.getListing(id),
     enabled: !!id && isAuthenticated(),
@@ -95,7 +96,13 @@ export default function EditListingPage() {
         ?? res.data as unknown as Record<string, unknown>;
       return l;
     },
-    onSuccess: (l: Record<string, unknown>) => {
+  });
+
+  // React Query v5 removed onSuccess — use useEffect instead
+  useEffect(() => {
+    if (listingData && !initialized.current) {
+      initialized.current = true;
+      const l = listingData as Record<string, unknown>;
       setForm({
         title:           String(l.title ?? ''),
         description:     String(l.description ?? ''),
@@ -113,8 +120,8 @@ export default function EditListingPage() {
         urgency:         Number(l.urgency_score ?? 3),
         status:          String(l.status ?? 'live'),
       });
-    },
-  } as Parameters<typeof useQuery>[0]);
+    }
+  }, [listingData]);
 
   // ── Save mutation ──────────────────────────────────────────
   const mutation = useMutation({

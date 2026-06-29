@@ -196,7 +196,7 @@ export default function DisputePage() {
           <h3 className="disp" style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--nm-ink)', margin: '0 0 12px' }}>Describe the issue</h3>
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
+            onChange={(e) => setDescription(e.target.value.slice(0, 1000))}
             rows={4}
             className="nm-input"
             style={{ resize: 'none' }}

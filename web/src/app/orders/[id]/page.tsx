@@ -264,9 +264,9 @@ export default function OrderDetailPage() {
   }
 
   const currentStageIdx = getStageIndex(order.status);
-  const canConfirmDelivery = order.status === 'delivered';
+  const canConfirmDelivery = ['delivered', 'shipped', 'payment_confirmed', 'confirmed'].includes(order.status);
   const canRaiseDispute = ['paid', 'payment_confirmed', 'payment_received', 'confirmed', 'shipped', 'in_transit', 'delivered'].includes(order.status);
-  const canCancel = order.status === 'payment_pending' || order.status === 'pending_payment' || order.status === 'pending';
+  const canCancel = ['payment_pending', 'pending_payment', 'pending'].includes(order.status);
   const escrowHolding = ['paid', 'payment_confirmed', 'payment_received', 'confirmed', 'shipped', 'in_transit', 'delivered'].includes(order.status);
   const orderNumber = order.order_number ?? id.slice(0, 8).toUpperCase();
   const initials = (order.seller_business_name ?? 'S').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();

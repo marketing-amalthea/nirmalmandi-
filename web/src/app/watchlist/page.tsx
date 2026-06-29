@@ -44,7 +44,7 @@ export default function WatchlistPage() {
   async function handleRemove(listingId: string) {
     setRemovedIds((prev) => new Set([...prev, listingId]));
     try {
-      await inventoryApi.addToWatchlist(listingId); // toggles off
+      await import('@/lib/api').then(m => m.default.delete(`/buyer/watchlist/${listingId}`));
       toast.success('Removed from watchlist');
     } catch {
       setRemovedIds((prev) => { const next = new Set(prev); next.delete(listingId); return next; });

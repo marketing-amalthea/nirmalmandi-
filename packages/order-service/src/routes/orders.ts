@@ -143,9 +143,8 @@ ordersRouter.post(
     try {
       // 3. Fetch seller state for GST calc
       const sellerProfile = await queryOne<SellerProfileRow>(
-        `SELECT sp.id, sp.user_id, a.state
+        `SELECT sp.id, sp.user_id, sp.state
          FROM seller_profiles sp
-         LEFT JOIN addresses a ON a.user_id = sp.user_id AND a.is_primary = true
          WHERE sp.id = $1`,
         [listing.seller_id]
       );
@@ -155,7 +154,7 @@ ordersRouter.post(
       let destPincode = '000000';
       if (delivery_address_id) {
         const addr = await queryOne<BuyerAddressRow>(
-          'SELECT id, state, pincode FROM addresses WHERE id = $1',
+          'SELECT id, state, pincode FROM buyer_addresses WHERE id = $1',
           [delivery_address_id]
         );
         if (addr) {
@@ -189,7 +188,7 @@ ordersRouter.post(
              subtotal, platform_commission, commission_rate, gst_amount, freight_amount,
              total_amount, status, payment_method, escrow_id, delivery_address_id, logistics_type)
            VALUES
-            ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'payment_pending',$14,$15,$16,$17)`,
+            ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending_payment',$14,$15,$16,$17)`,
           [
             orderId, order_number, buyer_id, listing.seller_id, listing_id,
             quantity, listing.asking_price, subtotal, payout.commission,

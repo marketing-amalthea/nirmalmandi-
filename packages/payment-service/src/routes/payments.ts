@@ -141,7 +141,7 @@ paymentsRouter.post('/webhook', async (req: Request, res: Response) => {
       const escrowId = (await client.query(
         `INSERT INTO escrow_accounts
            (order_id, amount, commission, gst_on_commission,
-            tcs_amount, net_payout, status, razorpay_payment_id)
+            tcs_amount, net_payout, status, razorpay_razorpay_payment_id)
          VALUES ($1, $2, $3, $4, $5, $6, 'held', $7)
          RETURNING id`,
         [order.id,
@@ -151,7 +151,7 @@ paymentsRouter.post('/webhook', async (req: Request, res: Response) => {
       )).rows[0].id;
 
       await client.query(
-        `UPDATE orders SET status = 'paid', payment_id = $1, escrow_id = $2, updated_at = NOW()
+        `UPDATE orders SET status = 'paid', razorpay_payment_id = $1, escrow_id = $2, updated_at = NOW()
          WHERE id = $3`,
         [payment.id, escrowId, order.id]
       );
@@ -183,9 +183,9 @@ paymentsRouter.post('/confirm-delivery', authenticate, async (req: Request, res:
 
   const order = await queryOne<{
     id: string; buyer_id: string; seller_id: string; status: string;
-    escrow_id: string; payment_id: string; order_number: string;
+    escrow_id: string; razorpay_payment_id: string; order_number: string;
   }>(
-    `SELECT o.id, o.buyer_id, o.seller_id, o.status, o.escrow_id, o.payment_id, o.order_number
+    `SELECT o.id, o.buyer_id, o.seller_id, o.status, o.escrow_id, o.razorpay_payment_id, o.order_number
      FROM orders o WHERE o.id = $1`,
     [orderId]
   );
@@ -196,7 +196,7 @@ paymentsRouter.post('/confirm-delivery', authenticate, async (req: Request, res:
     return res.status(409).json(errorResponse('Order not yet shipped'));
   }
 
-  await releaseEscrow(order.escrow_id, order.payment_id, order.seller_id, order.id, order.order_number);
+  await releaseEscrow(order.escrow_id, order.razorpay_payment_id, order.seller_id, order.id, order.order_number);
   return res.json(successResponse({ released: true, message: 'Payment released to seller' }));
 });
 
@@ -208,9 +208,9 @@ paymentsRouter.post('/admin/force-release', authenticate, requireRole('admin'), 
 
   const order = await queryOne<{
     id: string; seller_id: string; status: string;
-    escrow_id: string; payment_id: string; order_number: string;
+    escrow_id: string; razorpay_payment_id: string; order_number: string;
   }>(
-    'SELECT id, seller_id, status, escrow_id, payment_id, order_number FROM orders WHERE id = $1',
+    'SELECT id, seller_id, status, escrow_id, razorpay_payment_id, order_number FROM orders WHERE id = $1',
     [orderId]
   );
   if (!order) return res.status(404).json(errorResponse('Order not found'));
@@ -231,7 +231,7 @@ paymentsRouter.post('/admin/force-release', authenticate, requireRole('admin'), 
     ));
   }
 
-  await releaseEscrow(order.escrow_id, order.payment_id, order.seller_id, order.id, order.order_number);
+  await releaseEscrow(order.escrow_id, order.razorpay_payment_id, order.seller_id, order.id, order.order_number);
   logger.info('Admin force-released escrow', { orderId, adminId: req.user!.sub, reason });
   return res.json(successResponse({ released: true }));
 });
@@ -243,16 +243,16 @@ paymentsRouter.post('/admin/refund', authenticate, requireRole('admin'), async (
   if (!orderId || !reason) return res.status(400).json(errorResponse('orderId and reason required'));
 
   const order = await queryOne<{
-    id: string; buyer_id: string; payment_id: string; total_amount: number;
+    id: string; buyer_id: string; razorpay_payment_id: string; total_amount: number;
     escrow_id: string; order_number: string;
   }>(
-    'SELECT id, buyer_id, payment_id, total_amount, escrow_id, order_number FROM orders WHERE id = $1',
+    'SELECT id, buyer_id, razorpay_payment_id, total_amount, escrow_id, order_number FROM orders WHERE id = $1',
     [orderId]
   );
-  if (!order || !order.payment_id) return res.status(404).json(errorResponse('Order or payment not found'));
+  if (!order || !order.razorpay_payment_id) return res.status(404).json(errorResponse('Order or payment not found'));
 
   await withTransaction(async (client) => {
-    await issueRefund(order.payment_id, order.total_amount * 100, reason);
+    await issueRefund(order.razorpay_payment_id, order.total_amount * 100, reason);
     await client.query(
       `UPDATE escrow_accounts SET status = 'refunded', released_at = NOW() WHERE id = $1`,
       [order.escrow_id]

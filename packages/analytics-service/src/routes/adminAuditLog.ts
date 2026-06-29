@@ -26,7 +26,15 @@ adminAuditLogRouter.get('/', authenticate, requireAdmin as never, async (req: Re
   const offsetIdx = filterParams.length + 2;
 
   const rows = await query(
-    `SELECT al.*, u.name AS admin_name, u.email AS admin_email
+    `SELECT al.id, al.action, al.user_id,
+            al.entity_type   AS "entityType",
+            al.entity_id     AS "entityId",
+            al.ip_address    AS "ipAddress",
+            al.old_value     AS "oldValue",
+            al.new_value     AS "newValue",
+            al.created_at    AS "timestamp",
+            u.name           AS "adminName",
+            u.email          AS "adminEmail"
      FROM audit_logs al
      LEFT JOIN users u ON u.id = al.user_id
      ${where}
@@ -36,7 +44,7 @@ adminAuditLogRouter.get('/', authenticate, requireAdmin as never, async (req: Re
   );
 
   const [{ count }] = await query<{ count: string }>(
-    `SELECT COUNT(*) FROM audit_logs al ${where}`,
+    `SELECT COUNT(*) FROM audit_logs al LEFT JOIN users u ON u.id = al.user_id ${where}`,
     filterParams
   );
 

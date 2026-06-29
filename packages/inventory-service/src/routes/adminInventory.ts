@@ -181,7 +181,14 @@ adminInventoryRouter.post('/bulk', authenticate, requireAdmin as any, async (req
         sql = `UPDATE listings SET status = 'delisted', updated_at = NOW() WHERE id IN (${placeholders})`;
         break;
       case 'activate':
-        sql = `UPDATE listings SET status = 'active', updated_at = NOW() WHERE id IN (${placeholders})`;
+        sql = `UPDATE listings SET status = 'live', updated_at = NOW() WHERE id IN (${placeholders})`;
+        break;
+      case 'change_price':
+        if (!payload?.new_price || Number(payload.new_price) <= 0) {
+          res.status(400).json(errorResponse('new_price required for change_price action'));
+          return;
+        }
+        sql = `UPDATE listings SET asking_price = ${Number(payload.new_price)}, updated_at = NOW() WHERE id IN (${placeholders})`;
         break;
       default:
         res.status(400).json(errorResponse(`Unknown action: ${action}`, '400'));

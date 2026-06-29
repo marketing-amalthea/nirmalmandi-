@@ -96,7 +96,7 @@ adminOrdersRouter.get('/:id', authenticate, requireAdmin as any, async (req: Req
               seller.phone AS seller_phone,
               l.id    AS listing_id,
               l.title AS listing_title,
-              l.asking_price_per_unit
+              l.asking_price
        FROM orders o
        LEFT JOIN listings l ON o.listing_id = l.id
        LEFT JOIN buyer_profiles bp ON o.buyer_id = bp.id
