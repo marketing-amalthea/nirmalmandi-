@@ -8,10 +8,9 @@ import {
   IndianRupee, Star, ShieldCheck, CheckCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AppShell } from '@/components/ui';
+import { SellerAppShell } from '@/components/ui';
 import { notificationsApi, type Notification } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { SELLER_NAV, SELLER_BRAND_SUB, SellerSidebarFooter } from '../_nav';
 
 const PAGE_SIZE = 50;
 
@@ -86,10 +85,7 @@ export default function SellerNotificationsPage() {
   }
 
   return (
-    <AppShell
-      navItems={SELLER_NAV}
-      brandSub={SELLER_BRAND_SUB}
-      sidebarFooter={<SellerSidebarFooter />}
+    <SellerAppShell
       title={unread > 0 ? `Notifications (${unread} unread)` : 'Notifications'}
       subtitle="Updates on your listings, orders and payouts"
       actions={
@@ -163,6 +159,6 @@ export default function SellerNotificationsPage() {
           })}
         </div>
       )}
-    </AppShell>
+    </SellerAppShell>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Package,
@@ -11,12 +12,15 @@ import {
   ShoppingBag,
   Search,
   X,
+  ShoppingCart,
+  Clock,
+  CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AppShell, Badge, inr } from '@/components/ui';
+import { SellerAppShell, Badge, Kpi, inr } from '@/components/ui';
 import api from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { SELLER_NAV, SELLER_BRAND_SUB, SellerSidebarFooter } from '../_nav';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SellerOrder {
@@ -36,34 +40,41 @@ interface SellerOrder {
 }
 
 interface OrdersResponse {
-  data: SellerOrder[];
+  orders: SellerOrder[];
   total: number;
+  page: number;
+  limit: number;
 }
 
 const PAGE_SIZE = 20;
 
-const STATUS_TABS = [
-  { value: '', label: 'All' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'confirmed', label: 'Confirmed' },
-  { value: 'shipped', label: 'Shipped' },
-  { value: 'delivered', label: 'Delivered' },
+// Filter tabs → backend status values they include
+const STATUS_TABS: { value: string; label: string; match: string[] }[] = [
+  { value: '', label: 'All', match: [] },
+  { value: 'awaiting_payment', label: 'Awaiting Payment', match: ['pending_payment'] },
+  { value: 'active', label: 'Active', match: ['payment_received', 'payment_confirmed', 'confirmed'] },
+  { value: 'shipped', label: 'Shipped', match: ['shipped', 'delivered'] },
+  { value: 'completed', label: 'Completed', match: ['completed'] },
+  { value: 'disputed', label: 'Disputed', match: ['disputed', 'cancelled'] },
 ];
 
+// Backend status → human label (matches Badge color map)
 const STATUS_LABEL: Record<string, string> = {
-  pending: 'Pending',
+  pending_payment: 'Pending payment',
+  payment_received: 'Paid',
+  payment_confirmed: 'Confirmed',
   confirmed: 'Confirmed',
-  processing: 'Pending',
-  ready_to_ship: 'Awaiting ship',
   shipped: 'Shipped',
-  in_transit: 'In transit',
   delivered: 'Delivered',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
   disputed: 'Disputed',
+  cancelled: 'Cancelled',
+  completed: 'Completed',
 };
 
-const CARRIERS = ['Delhivery', 'BlueDart', 'DTDC', 'India Post', 'Ekart', 'Other'];
+// Statuses where the seller can still mark the order shipped
+const SHIPPABLE = new Set(['payment_received', 'payment_confirmed', 'confirmed']);
+
+const COURIERS = ['Delhivery', 'BlueDart', 'DTDC', 'Ekart', 'India Post', 'Other'];
 
 function timeAgo(d: string) {
   const h = Math.floor((Date.now() - new Date(d).getTime()) / 3600000);
@@ -72,30 +83,35 @@ function timeAgo(d: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-// ── Mark Shipped Modal (logic preserved) ─────────────────────────────────────────
-function MarkShippedModal({ order, onClose }: { order: SellerOrder; onClose: () => void }) {
-  const qc = useQueryClient();
-  const [awb, setAwb] = useState('');
-  const [carrier, setCarrier] = useState('');
-  const [trackingLink, setTrackingLink] = useState('');
-  const [errors, setErrors] = useState<{ awb?: string; carrier?: string }>({});
+// ── Mark Shipped Modal ──────────────────────────────────────────────────────────
+function MarkShippedModal({
+  order,
+  onClose,
+  onShipped,
+}: {
+  order: SellerOrder;
+  onClose: () => void;
+  onShipped: () => void;
+}) {
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [courier, setCourier] = useState('');
+  const [errors, setErrors] = useState<{ tracking?: string; courier?: string }>({});
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit() {
     const errs: typeof errors = {};
-    if (!awb.trim()) errs.awb = 'AWB number is required';
-    if (!carrier) errs.carrier = 'Please select a carrier';
+    if (!trackingNumber.trim()) errs.tracking = 'Tracking number is required';
+    if (!courier) errs.courier = 'Please select a courier';
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setLoading(true);
     try {
-      await api.patch(`/seller/orders/${order.id}/ship`, {
-        awb_number: awb.trim(),
-        carrier,
-        tracking_link: trackingLink.trim() || undefined,
+      await api.patch(`/orders/${order.id}/ship`, {
+        tracking_number: trackingNumber.trim(),
+        courier,
       });
       toast.success('Order marked as shipped');
-      qc.invalidateQueries({ queryKey: ['seller-orders'] });
+      onShipped();
       onClose();
     } catch {
       toast.error('Failed to mark order as shipped');
@@ -117,39 +133,28 @@ function MarkShippedModal({ order, onClose }: { order: SellerOrder; onClose: () 
 
         <div className="flex flex-col gap-4">
           <div>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>AWB number *</label>
+            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Tracking number *</label>
             <input
-              value={awb}
-              onChange={(e) => { setAwb(e.target.value); setErrors((p) => ({ ...p, awb: undefined })); }}
+              value={trackingNumber}
+              onChange={(e) => { setTrackingNumber(e.target.value); setErrors((p) => ({ ...p, tracking: undefined })); }}
               placeholder="e.g. 1234567890"
               className="nm-input"
               style={{ width: '100%' }}
             />
-            {errors.awb && <p style={{ fontSize: 12, color: 'var(--nm-red)', marginTop: 4 }}>{errors.awb}</p>}
+            {errors.tracking && <p style={{ fontSize: 12, color: 'var(--nm-red)', marginTop: 4 }}>{errors.tracking}</p>}
           </div>
           <div>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Carrier *</label>
+            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Courier *</label>
             <select
-              value={carrier}
-              onChange={(e) => { setCarrier(e.target.value); setErrors((p) => ({ ...p, carrier: undefined })); }}
+              value={courier}
+              onChange={(e) => { setCourier(e.target.value); setErrors((p) => ({ ...p, courier: undefined })); }}
               className="nm-select"
               style={{ width: '100%' }}
             >
-              <option value="">Select carrier…</option>
-              {CARRIERS.map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value="">Select courier…</option>
+              {COURIERS.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            {errors.carrier && <p style={{ fontSize: 12, color: 'var(--nm-red)', marginTop: 4 }}>{errors.carrier}</p>}
-          </div>
-          <div>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Tracking link (optional)</label>
-            <input
-              type="url"
-              value={trackingLink}
-              onChange={(e) => setTrackingLink(e.target.value)}
-              placeholder="https://track.example.com/…"
-              className="nm-input"
-              style={{ width: '100%' }}
-            />
+            {errors.courier && <p style={{ fontSize: 12, color: 'var(--nm-red)', marginTop: 4 }}>{errors.courier}</p>}
           </div>
         </div>
 
@@ -165,39 +170,61 @@ function MarkShippedModal({ order, onClose }: { order: SellerOrder; onClose: () 
 }
 
 export default function SellerOrdersPage() {
+  const qc = useQueryClient();
   const [statusTab, setStatusTab] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [shipModal, setShipModal] = useState<SellerOrder | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['seller-orders', statusTab, page],
+    queryKey: ['seller-orders', page],
     queryFn: () =>
       api.get<OrdersResponse>('/orders/my/seller', {
-        params: { status: statusTab || undefined, page, limit: PAGE_SIZE },
+        params: { page, limit: PAGE_SIZE },
       }),
-    select: (res) => (res.data as unknown as { data: OrdersResponse })?.data ?? res.data,
+    select: (res) => (res.data as unknown as { data: OrdersResponse })?.data ?? (res.data as unknown as OrdersResponse),
     enabled: isAuthenticated(),
     placeholderData: (prev) => prev,
   });
 
-  const allOrders: SellerOrder[] = data?.data ?? [];
+  const allOrders: SellerOrder[] = data?.orders ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  // KPIs computed from the fetched orders
+  const kpis = useMemo(() => {
+    let pendingPayment = 0;
+    let inTransit = 0;
+    let completed = 0;
+    for (const o of allOrders) {
+      if (o.status === 'pending_payment') pendingPayment += 1;
+      if (o.status === 'shipped' || o.status === 'delivered') inTransit += 1;
+      if (o.status === 'completed') completed += 1;
+    }
+    return { total: allOrders.length, pendingPayment, inTransit, completed };
+  }, [allOrders]);
+
+  // Filter by tab + search
+  const tab = STATUS_TABS.find((t) => t.value === statusTab);
   const q = search.trim().toLowerCase();
-  const orders = q
-    ? allOrders.filter((o) =>
-        (o.listing_title ?? '').toLowerCase().includes(q) ||
+  const orders = allOrders.filter((o) => {
+    if (tab && tab.match.length && !tab.match.includes(o.status)) return false;
+    if (q) {
+      return (
         (o.order_number ?? '').toLowerCase().includes(q) ||
-        (o.buyer_business_name ?? o.buyer_name ?? '').toLowerCase().includes(q))
-    : allOrders;
+        (o.listing_title ?? '').toLowerCase().includes(q) ||
+        (o.buyer_business_name ?? o.buyer_name ?? '').toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  function refetchOrders() {
+    qc.invalidateQueries({ queryKey: ['seller-orders'] });
+  }
 
   return (
-    <AppShell
-      navItems={SELLER_NAV}
-      brandSub={SELLER_BRAND_SUB}
-      sidebarFooter={<SellerSidebarFooter />}
+    <SellerAppShell
       title="Orders"
       subtitle={`${total.toLocaleString('en-IN')} total orders`}
       actions={
@@ -206,13 +233,21 @@ export default function SellerOrdersPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search orders…"
+            placeholder="Search by order #…"
             className="nm-input"
             style={{ paddingLeft: 34, width: 220, borderRadius: 999, padding: '9px 14px 9px 34px', fontSize: 13.5 }}
           />
         </div>
       }
     >
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        <Kpi label="Total orders" value={kpis.total.toLocaleString('en-IN')} icon={ShoppingCart} />
+        <Kpi label="Pending payment" value={kpis.pendingPayment.toLocaleString('en-IN')} icon={Clock} />
+        <Kpi label="In transit" value={kpis.inTransit.toLocaleString('en-IN')} icon={Truck} />
+        <Kpi label="Completed" value={kpis.completed.toLocaleString('en-IN')} icon={CheckCircle2} />
+      </div>
+
       {/* Status tabs */}
       <div className="nm-tabbar mb-5">
         {STATUS_TABS.map((t) => (
@@ -232,8 +267,7 @@ export default function SellerOrdersPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {orders.map((o) => {
-            const awaitingShip = o.status === 'ready_to_ship';
-            const inEscrow = ['paid', 'confirmed', 'shipped', 'in_transit'].includes(o.status);
+            const shippable = SHIPPABLE.has(o.status);
             const img = o.images?.[0];
             return (
               <div key={o.id} className="nm-card flex items-center gap-4" style={{ padding: '16px 20px' }}>
@@ -252,13 +286,20 @@ export default function SellerOrdersPage() {
                   <p className="disp" style={{ fontSize: 14, fontWeight: 700, color: 'var(--nm-ink)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {o.listing_title}
                   </p>
-                  <p style={{ fontSize: 12, color: 'var(--nm-muted)', margin: 0 }}>
+                  <p style={{ fontSize: 12, color: 'var(--nm-muted)', margin: '0 0 4px' }}>
                     #{o.order_number ?? o.id.slice(0, 8)} · {o.buyer_business_name || o.buyer_name || 'Buyer'} · Qty {o.quantity} · {timeAgo(o.created_at)}
                   </p>
+                  <Link
+                    href={`/orders/${o.id}`}
+                    className="inline-flex items-center gap-1"
+                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--nm-green)' }}
+                  >
+                    View details <ArrowRight size={12} />
+                  </Link>
                 </div>
 
                 {/* Status badge */}
-                <Badge status={STATUS_LABEL[o.status] ?? 'Pending'} />
+                <Badge status={STATUS_LABEL[o.status] ?? o.status} />
 
                 {/* Amount */}
                 <div className="flex-shrink-0 text-right" style={{ minWidth: 96 }}>
@@ -266,14 +307,14 @@ export default function SellerOrdersPage() {
                 </div>
 
                 {/* Context action */}
-                {awaitingShip ? (
+                {shippable ? (
                   <button onClick={() => setShipModal(o)} className="nm-btn-primary flex-shrink-0 flex items-center gap-1.5" style={{ fontSize: 12.5, padding: '8px 14px' }}>
                     <Truck size={14} /> Mark shipped
                   </button>
-                ) : inEscrow ? (
-                  <button className="nm-btn-gold flex-shrink-0" style={{ fontSize: 12.5, padding: '8px 14px' }}>View order</button>
                 ) : (
-                  <button className="nm-btn-secondary flex-shrink-0" style={{ fontSize: 12.5, padding: '8px 14px' }}>View</button>
+                  <Link href={`/orders/${o.id}`} className="nm-btn-secondary flex-shrink-0" style={{ fontSize: 12.5, padding: '8px 14px' }}>
+                    View order
+                  </Link>
                 )}
               </div>
             );
@@ -307,7 +348,13 @@ export default function SellerOrdersPage() {
         </div>
       )}
 
-      {shipModal && <MarkShippedModal order={shipModal} onClose={() => setShipModal(null)} />}
-    </AppShell>
+      {shipModal && (
+        <MarkShippedModal
+          order={shipModal}
+          onClose={() => setShipModal(null)}
+          onShipped={refetchOrders}
+        />
+      )}
+    </SellerAppShell>
   );
 }

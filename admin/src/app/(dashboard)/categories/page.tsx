@@ -8,7 +8,14 @@ import AdminShell from '@/components/ui/AdminShell';
 import Toggle from '@/components/ui/Toggle';
 import { categoriesApi } from '@/lib/api';
 
-interface Category { id: string; name: string; slug: string; status: string; commission_rate?: number; gst_rate?: number; listing_count?: number; listingCount?: number; admin_approved?: boolean; }
+interface Category {
+  id: string; name: string; slug: string; status: string;
+  // Backend (adminCategories.ts) returns camelCase aliases; keep snake_case optional for safety.
+  commissionRate?: number; commission_rate?: number;
+  gstRate?: number; gst_rate?: number;
+  listingCount?: number; listing_count?: number;
+  adminApproved?: boolean; admin_approved?: boolean;
+}
 interface FormData { name: string; slug: string; commission_rate: string; gst_rate: string; }
 const EMPTY: FormData = { name: '', slug: '', commission_rate: '3', gst_rate: '18' };
 
@@ -51,7 +58,7 @@ export default function CategoriesPage() {
 
   function openEdit(c: Category) {
     setEditing(c);
-    setForm({ name: c.name, slug: c.slug, commission_rate: String((c.commission_rate ?? 0.03) * 100), gst_rate: String((c.gst_rate ?? 0.18) * 100) });
+    setForm({ name: c.name, slug: c.slug, commission_rate: String((c.commissionRate ?? c.commission_rate ?? 0.03) * 100), gst_rate: String((c.gstRate ?? c.gst_rate ?? 0.18) * 100) });
     setShowModal(true);
   }
 
@@ -92,11 +99,11 @@ export default function CategoriesPage() {
                     </div>
                   </td>
                   <td style={{ fontSize: 12.5, color: 'var(--nm-muted)', fontFamily: 'monospace' }}>/{c.slug}</td>
-                  <td className="num" style={{ textAlign: 'right', fontSize: 13 }}>{((c.commission_rate ?? 0.03) * 100).toFixed(1)}%</td>
-                  <td className="num" style={{ textAlign: 'right', fontSize: 13 }}>{((c.gst_rate ?? 0.18) * 100).toFixed(0)}%</td>
-                  <td className="num" style={{ textAlign: 'right', fontSize: 13 }}>{c.listing_count ?? c.listingCount ?? 0}</td>
+                  <td className="num" style={{ textAlign: 'right', fontSize: 13 }}>{((c.commissionRate ?? c.commission_rate ?? 0.03) * 100).toFixed(1)}%</td>
+                  <td className="num" style={{ textAlign: 'right', fontSize: 13 }}>{((c.gstRate ?? c.gst_rate ?? 0.18) * 100).toFixed(0)}%</td>
+                  <td className="num" style={{ textAlign: 'right', fontSize: 13 }}>{c.listingCount ?? c.listing_count ?? 0}</td>
                   <td>
-                    <Toggle on={c.status === 'active' || c.admin_approved !== false} onChange={() => toggleMut.mutate(c.id)} />
+                    <Toggle on={c.status === 'active'} onChange={() => toggleMut.mutate(c.id)} />
                   </td>
                   <td>
                     <div className="flex items-center gap-2">

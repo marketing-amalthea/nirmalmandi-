@@ -15,10 +15,9 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AppShell, Badge, Toggle, inr } from '@/components/ui';
+import { SellerAppShell, Badge, Toggle, inr } from '@/components/ui';
 import api, { inventoryApi } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { SELLER_NAV, SELLER_BRAND_SUB, SellerSidebarFooter } from '../_nav';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SellerListing {
@@ -64,6 +63,15 @@ function daysSince(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
 
+function StatCard({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  return (
+    <div className="nm-card" style={{ padding: '14px 18px' }}>
+      <p className="num disp" style={{ fontSize: 22, fontWeight: 800, color: accent ?? 'var(--nm-ink)', margin: 0 }}>{value}</p>
+      <p style={{ fontSize: 12, color: 'var(--nm-muted)', margin: '2px 0 0' }}>{label}</p>
+    </div>
+  );
+}
+
 export default function SellerListingsPage() {
   const qc = useQueryClient();
 
@@ -90,7 +98,7 @@ export default function SellerListingsPage() {
         params: {
           search: debouncedSearch || undefined,
           status: statusTab || undefined,
-          sort_by: sortBy,
+          sort: sortBy,
           page,
           limit: PAGE_SIZE,
         },
@@ -103,6 +111,11 @@ export default function SellerListingsPage() {
   const listings: SellerListing[] = data?.data ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Stats computed from the loaded listings (current view)
+  const liveCount = listings.filter((l) => l.status === 'live' || l.status === 'active').length;
+  const pausedCount = listings.filter((l) => l.status === 'paused').length;
+  const totalViews = listings.reduce((sum, l) => sum + (Number(l.view_count) || 0), 0);
 
   // Toggle pause/resume via inventoryApi.updateListing
   async function togglePause(l: SellerListing) {
@@ -136,10 +149,7 @@ export default function SellerListingsPage() {
   const currentSort = SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? 'Sort';
 
   return (
-    <AppShell
-      navItems={SELLER_NAV}
-      brandSub={SELLER_BRAND_SUB}
-      sidebarFooter={<SellerSidebarFooter />}
+    <SellerAppShell
       title="My Listings"
       subtitle={`${total.toLocaleString('en-IN')} total listings`}
       actions={
@@ -160,6 +170,14 @@ export default function SellerListingsPage() {
         </div>
       }
     >
+      {/* Stats row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        <StatCard label="Total listings" value={total.toLocaleString('en-IN')} />
+        <StatCard label="Live" value={liveCount.toLocaleString('en-IN')} accent="var(--nm-green)" />
+        <StatCard label="Paused" value={pausedCount.toLocaleString('en-IN')} accent="var(--nm-gold)" />
+        <StatCard label="Views (this page)" value={totalViews.toLocaleString('en-IN')} />
+      </div>
+
       {/* Status tabs + sort */}
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
         <div className="nm-tabbar">
@@ -260,10 +278,10 @@ export default function SellerListingsPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--nm-ink)' }}>{inr(l.asking_price)}</td>
+                    <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--nm-ink)' }}>{inr(Number(l.asking_price) || 0)}</td>
                     <td><Badge status={STATUS_LABEL[l.status] ?? l.status} /></td>
-                    <td className="num" style={{ textAlign: 'right', color: 'var(--nm-muted)' }}>{(l.view_count ?? 0).toLocaleString('en-IN')}</td>
-                    <td className="num" style={{ textAlign: 'right', color: 'var(--nm-muted)' }}>{(l.watchlist_count ?? 0).toLocaleString('en-IN')}</td>
+                    <td className="num" style={{ textAlign: 'right', color: 'var(--nm-muted)' }}>{(Number(l.view_count) || 0).toLocaleString('en-IN')}</td>
+                    <td className="num" style={{ textAlign: 'right', color: 'var(--nm-muted)' }}>{(Number(l.watchlist_count) || 0).toLocaleString('en-IN')}</td>
                     <td className="num" style={{ textAlign: 'right', color: ageOld ? 'var(--nm-red)' : 'var(--nm-muted)', fontWeight: ageOld ? 700 : 500 }}>{age}d</td>
                     <td>
                       <div className="flex items-center justify-end gap-2.5">
@@ -327,6 +345,6 @@ export default function SellerListingsPage() {
           </button>
         </div>
       )}
-    </AppShell>
+    </SellerAppShell>
   );
 }

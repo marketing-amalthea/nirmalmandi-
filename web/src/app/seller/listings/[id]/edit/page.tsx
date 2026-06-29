@@ -7,8 +7,7 @@ import { Loader2, AlertCircle, ArrowLeft, Save, Pause, Play } from 'lucide-react
 import { toast } from 'sonner';
 import { inventoryApi } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { AppShell, SectionCard } from '@/components/ui';
-import { SELLER_NAV, SELLER_BRAND_SUB, SellerSidebarFooter } from '../../../_nav';
+import { SellerAppShell, SectionCard } from '@/components/ui';
 
 // ── Enums matching backend schema ──────────────────────────────
 const DEAD_STOCK_TYPES = [
@@ -180,17 +179,17 @@ export default function EditListingPage() {
 
   if (isLoading || !form) {
     return (
-      <AppShell navItems={SELLER_NAV} brandSub={SELLER_BRAND_SUB} sidebarFooter={<SellerSidebarFooter />} title="Edit listing">
+      <SellerAppShell title="Edit listing">
         <div className="flex items-center justify-center py-24">
           <Loader2 size={32} className="animate-spin" style={{ color: 'var(--nm-green)' }} />
         </div>
-      </AppShell>
+      </SellerAppShell>
     );
   }
 
   if (isError) {
     return (
-      <AppShell navItems={SELLER_NAV} brandSub={SELLER_BRAND_SUB} sidebarFooter={<SellerSidebarFooter />} title="Edit listing">
+      <SellerAppShell title="Edit listing">
         <div className="flex flex-col items-center gap-4 py-24">
           <AlertCircle size={32} style={{ color: 'var(--nm-red)' }} />
           <p style={{ color: 'var(--nm-muted)' }}>Listing not found or you don&apos;t have access.</p>
@@ -198,15 +197,12 @@ export default function EditListingPage() {
             Back to listings
           </button>
         </div>
-      </AppShell>
+      </SellerAppShell>
     );
   }
 
   return (
-    <AppShell
-      navItems={SELLER_NAV}
-      brandSub={SELLER_BRAND_SUB}
-      sidebarFooter={<SellerSidebarFooter />}
+    <SellerAppShell
       title="Edit listing"
       subtitle="Update your listing details"
       actions={
@@ -389,6 +385,6 @@ export default function EditListingPage() {
           </div>
         </div>
       </div>
-    </AppShell>
+    </SellerAppShell>
   );
 }

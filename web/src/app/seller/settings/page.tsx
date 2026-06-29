@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Lock, AlertTriangle, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { AppShell, SectionCard, Toggle } from '@/components/ui';
+import { SellerAppShell, SectionCard, Toggle } from '@/components/ui';
 import api from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { SELLER_NAV, SELLER_BRAND_SUB, SellerSidebarFooter } from '../_nav';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SellerProfile {
@@ -138,10 +137,7 @@ export default function SellerSettingsPage() {
   const maskedAccount = profile.bank_account_last4 ? `••••  ••••  ${profile.bank_account_last4}` : '—';
 
   return (
-    <AppShell
-      navItems={SELLER_NAV}
-      brandSub={SELLER_BRAND_SUB}
-      sidebarFooter={<SellerSidebarFooter />}
+    <SellerAppShell
       title="Settings"
       subtitle="Manage notifications, account & business details"
     >
@@ -275,6 +271,6 @@ export default function SellerSettingsPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </SellerAppShell>
   );
 }

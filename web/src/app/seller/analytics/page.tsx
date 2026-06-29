@@ -13,10 +13,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AppShell, Kpi, SectionCard, inr } from '@/components/ui';
+import { SellerAppShell, Kpi, SectionCard, inr } from '@/components/ui';
 import api from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { SELLER_NAV, SELLER_BRAND_SUB, SellerSidebarFooter } from '../_nav';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface KpiData {
@@ -212,7 +211,46 @@ export default function SellerAnalyticsPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['seller-analytics', period],
     queryFn: () => api.get<{ data: AnalyticsData }>('/seller/analytics', { params: { period } }),
-    select: (res) => (res.data as unknown as { data: AnalyticsData })?.data ?? res.data,
+    // Unwrap { success, data: {...} } envelope and coerce SQL numeric strings to numbers
+    select: (res) => {
+      const raw = ((res.data as unknown as { data?: Partial<AnalyticsData> })?.data ?? res.data) as Partial<AnalyticsData> | undefined;
+      if (!raw) return undefined;
+      const n = (v: unknown) => Number(v) || 0;
+      const k = (raw.kpis ?? {}) as Record<string, unknown>;
+      const f = (raw.funnel ?? {}) as Record<string, unknown>;
+      return {
+        kpis: {
+          revenue: n(k.revenue),
+          revenue_change_pct: n(k.revenue_change_pct),
+          orders: n(k.orders),
+          orders_change_pct: n(k.orders_change_pct),
+          avg_order_value: n(k.avg_order_value),
+          aov_change_pct: n(k.aov_change_pct),
+          active_listings: n(k.active_listings),
+          conversion_pct: k.conversion_pct != null ? n(k.conversion_pct) : undefined,
+          avg_response: (k.avg_response as string) || undefined,
+        },
+        revenue_trend: (raw.revenue_trend ?? []).map((p) => ({ date: String((p as RevenueTrendPoint).date), revenue: n((p as RevenueTrendPoint).revenue) })),
+        funnel: {
+          views: n(f.views),
+          watchlists: n(f.watchlists),
+          orders: n(f.orders),
+          repeat: f.repeat != null ? n(f.repeat) : undefined,
+        },
+        top_listings: (raw.top_listings ?? []).map((l) => {
+          const t = l as Record<string, unknown>;
+          return {
+            id: String(t.id),
+            title: String(t.title ?? ''),
+            views: n(t.views),
+            orders: n(t.orders),
+            revenue: n(t.revenue),
+            conversion_pct: n(t.conversion_pct),
+            inquiries: t.inquiries != null ? n(t.inquiries) : undefined,
+          };
+        }),
+      } as AnalyticsData;
+    },
     enabled: ready && isAuthenticated(),
     retry: 1,
   });
@@ -228,10 +266,7 @@ export default function SellerAnalyticsPage() {
   const cvr = kpis.conversion_pct ?? (funnel.views > 0 ? (funnel.orders / funnel.views) * 100 : 0);
 
   return (
-    <AppShell
-      navItems={SELLER_NAV}
-      brandSub={SELLER_BRAND_SUB}
-      sidebarFooter={<SellerSidebarFooter />}
+    <SellerAppShell
       title="Analytics"
       subtitle="Performance insights for your seller account"
       actions={
@@ -304,6 +339,6 @@ export default function SellerAnalyticsPage() {
           </div>
         </>
       )}
-    </AppShell>
+    </SellerAppShell>
   );
 }

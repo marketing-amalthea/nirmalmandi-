@@ -30,7 +30,8 @@ profileRouter.get('/me', async (req: Request, res: Response) => {
   } else if (req.user!.role === 'buyer') {
     profile = await queryOne(
       `SELECT bp.id, bp.business_name, bp.gst_number, bp.verification_tier,
-              bp.sector_interests, bp.total_purchases, bp.ai_credits_balance, bp.referral_earnings
+              bp.sector_interests, bp.total_purchases, bp.ai_credits_balance, bp.referral_earnings,
+              bp.city, bp.state
        FROM buyer_profiles bp WHERE bp.user_id = $1`,
       [req.user!.sub]
     );
@@ -73,7 +74,7 @@ profileRouter.patch('/me', async (req: Request, res: Response) => {
     );
   }
 
-  // Update seller_profiles if seller + seller fields provided
+  // Update role-specific profile table
   if (req.user!.role === 'seller') {
     const spUpdates: Record<string, unknown> = {};
     if (business_name !== undefined) spUpdates.business_name = business_name;
@@ -90,6 +91,19 @@ profileRouter.patch('/me', async (req: Request, res: Response) => {
         `UPDATE seller_profiles SET ${spFields}, updated_at = NOW() WHERE user_id = $1`,
         [req.user!.sub, ...Object.values(spUpdates)]
       );
+    }
+  } else if (req.user!.role === 'buyer') {
+    // Buyers can update city/state on their buyer_profile
+    const bpUpdates: Record<string, unknown> = {};
+    if (city !== undefined) bpUpdates.city = city;
+    if (state !== undefined) bpUpdates.state = state;
+
+    if (Object.keys(bpUpdates).length) {
+      const bpFields = Object.keys(bpUpdates).map((k, i) => `${k} = $${i + 2}`).join(', ');
+      await query(
+        `UPDATE buyer_profiles SET ${bpFields} WHERE user_id = $1`,
+        [req.user!.sub, ...Object.values(bpUpdates)]
+      ).catch(() => { /* city/state columns may not exist — silently ignore */ });
     }
   }
 

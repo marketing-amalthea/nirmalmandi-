@@ -29,7 +29,7 @@ const INDIAN_STATES = [
 const PLATFORM_FEE_PCT = 2.5;
 const GST_ON_FEE_PCT = 18;
 
-type FreightType = 'self_ship' | 'platform_logistics' | 'buyer_pickup';
+type FreightType = 'seller_ship' | 'platform_logistics' | 'buyer_pickup';
 
 interface NewAddressForm {
   name: string; phone: string; address_line1: string; address_line2: string;
@@ -38,7 +38,7 @@ interface NewAddressForm {
 
 const FREIGHT_OPTS: { value: FreightType; label: string; subtitle: string; icon: typeof Truck }[] = [
   { value: 'platform_logistics', label: 'Platform logistics â€” Delhivery', subtitle: 'NirmalMandi arranges pickup & delivery Â· 2â€“4 days', icon: Truck },
-  { value: 'self_ship', label: 'Seller ship', subtitle: 'Seller arranges delivery Â· 3â€“7 days', icon: Store },
+  { value: 'seller_ship', label: 'Seller ship', subtitle: 'Seller arranges delivery Â· 3â€“7 days', icon: Store },
   { value: 'buyer_pickup', label: 'Buyer pickup', subtitle: 'Coordinate pickup directly with seller', icon: Hand },
 ];
 
@@ -129,7 +129,7 @@ export default function CheckoutPage() {
   const gstOnFee = (platformFee * GST_ON_FEE_PCT) / 100;
   const freight = freightType === 'platform_logistics'
     ? (freightEstimate ?? null)
-    : freightType === 'self_ship' || freightType === 'buyer_pickup' ? 0 : null;
+    : freightType === 'seller_ship' || freightType === 'buyer_pickup' ? 0 : null;
   const total = subtotal + platformFee + gstOnFee + (freight ?? 0);
 
   function validateForm(): boolean {
@@ -157,7 +157,7 @@ export default function CheckoutPage() {
 
     setPlacing(true);
     try {
-      let deliveryAddress: Address | undefined;
+      let deliveryAddressId: string | undefined;
       if (showNewAddressForm) {
         const res = await addressApi.addAddress({
           name: newAddress.name,
@@ -169,35 +169,38 @@ export default function CheckoutPage() {
           pincode: newAddress.pincode,
           save_for_future: newAddress.save_for_future,
         });
-        deliveryAddress = (res.data as unknown as { data?: Address } | Address)
-          ? ((res.data as unknown as { data?: Address })?.data ?? res.data as unknown as Address)
-          : undefined;
+        const savedAddr = (res.data as unknown as { data?: Address })?.data ?? (res.data as unknown as Address);
+        deliveryAddressId = savedAddr?.id;
       } else {
-        deliveryAddress = selectedAddress ?? undefined;
+        deliveryAddressId = selectedAddress?.id;
       }
 
       const orderRes = await ordersApi.placeOrder({
         listing_id: listingId,
         quantity,
-        delivery_address: deliveryAddress,
-        freight_type: freightType,
+        delivery_address_id: deliveryAddressId,
+        logistics_type: freightType,
       });
       const orderPayload = (orderRes.data as unknown as { data?: { orderId: string; order_number: string } } | { orderId: string; order_number: string });
       const orderId = (orderPayload as { data?: { orderId: string } })?.data?.orderId
         ?? (orderPayload as { orderId?: string })?.orderId ?? '';
 
+      const sellerId = String((listing as unknown as Record<string, unknown> | null)?.seller_id ?? '');
       const totalPaisa = Math.round(total * 100);
-      const payRes = await paymentsApi.initiatePayment(orderId, totalPaisa);
-      const payPayload = (payRes.data as unknown as { data?: { razorpay_order_id: string; razorpay_key: string; amount: number } } | { razorpay_order_id: string; razorpay_key: string; amount: number });
-      const rzpData = (payPayload as { data?: { razorpay_order_id: string; razorpay_key: string; amount: number } })?.data
-        ?? payPayload as { razorpay_order_id: string; razorpay_key: string; amount: number };
+      const payRes = await paymentsApi.initiatePayment({
+        orderId,
+        amountPaisa: totalPaisa,
+        listingId,
+        sellerId,
+      });
+      const rzpData = (payRes.data as unknown as { data: { razorpayOrderId: string; razorpayKeyId: string; amountPaisa: number } }).data;
 
       const user = getUser();
 
       const rzp = new (window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { open(): void } }).Razorpay({
-        key: rzpData.razorpay_key,
-        amount: rzpData.amount,
-        order_id: rzpData.razorpay_order_id,
+        key: rzpData.razorpayKeyId,
+        amount: rzpData.amountPaisa,
+        order_id: rzpData.razorpayOrderId,
         name: 'NirmalMandi',
         description: String((listing as unknown as Record<string, unknown> | null)?.title ?? 'Inventory Purchase'),
         prefill: { name: user?.name ?? '', contact: user?.phone ?? '' },

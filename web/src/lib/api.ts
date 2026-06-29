@@ -177,9 +177,9 @@ export const ordersApi = {
   placeOrder: (data: {
     listing_id: string;
     quantity: number;
-    buyer_state?: string;
-    delivery_address?: Address;
-    freight_type?: string;
+    delivery_address_id?: string;
+    logistics_type?: 'seller_ship' | 'platform_logistics' | 'buyer_pickup';
+    payment_method?: 'upi' | 'neft' | 'rtgs' | 'card';
   }) => api.post<{ orderId: string; order_number: string }>('/orders', data),
 
   getMyOrders: (params?: { status?: string; page?: number; limit?: number; search?: string }) =>
@@ -255,11 +255,16 @@ export const paymentApi = {
 };
 
 export const paymentsApi = {
-  initiatePayment: (orderId: string, amount: number) =>
-    api.post<{ razorpay_order_id: string; razorpay_key: string; amount: number }>('/payments/initiate', {
-      order_id: orderId,
-      amount,
-    }),
+  initiatePayment: (data: {
+    orderId: string;
+    amountPaisa: number;
+    listingId: string;
+    sellerId: string;
+    payment_method?: 'razorpay' | 'bnpl';
+  }) =>
+    api.post<{
+      data: { razorpayOrderId: string; razorpayKeyId: string; amountPaisa: number; currency: string; payment_method: string };
+    }>('/payments/initiate', data),
 };
 
 // ── Addresses ─────────────────────────────────────────────────────────────────
@@ -288,7 +293,7 @@ export const disputeApi = {
   }) => api.post<{ data: { disputeId: string; slaDeadline: string } }>('/disputes/raise', data),
 
   uploadEvidence: (disputeId: string, filename: string, filetype: string) =>
-    api.post<{ data: { presigned_url: string; key: string } }>(`/disputes/${disputeId}/evidence`, {
+    api.post<{ data: { uploadUrl: string; fileUrl: string } }>(`/disputes/${disputeId}/evidence`, {
       fileName: filename,
       fileType: filetype,
     }),

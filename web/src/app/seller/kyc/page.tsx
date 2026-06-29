@@ -6,8 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, ShieldCheck, ShieldAlert, ShieldX, Shield, CheckCircle, Circle, ExternalLink, Mail } from 'lucide-react';
 import api from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { AppShell, SectionCard } from '@/components/ui';
-import { SELLER_NAV, SELLER_BRAND_SUB, SellerSidebarFooter } from '../_nav';
+import { SellerAppShell, SectionCard } from '@/components/ui';
 
 // ── Tier definitions ───────────────────────────────────────────
 const TIERS = [
@@ -102,10 +101,7 @@ export default function SellerKycPage() {
   };
 
   return (
-    <AppShell
-      navItems={SELLER_NAV}
-      brandSub={SELLER_BRAND_SUB}
-      sidebarFooter={<SellerSidebarFooter />}
+    <SellerAppShell
       title="KYC Verification"
       subtitle="Complete verification to unlock full platform access"
     >
@@ -237,6 +233,6 @@ export default function SellerKycPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </SellerAppShell>
   );
 }

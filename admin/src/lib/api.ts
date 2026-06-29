@@ -44,6 +44,8 @@ api.interceptors.response.use(
 export default api;
 
 export const authApi = {
+  emailLogin: (email: string, password: string) =>
+    api.post('/auth/email/login', { email, password }),
   sendOtp: (phone: string) =>
     api.post('/auth/admin/otp/send', { phone }),
   verifyOtp: (phone: string, otp: string) =>

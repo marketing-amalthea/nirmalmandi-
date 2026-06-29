@@ -18,8 +18,7 @@ import {
 import { toast } from 'sonner';
 import api, { aiApi } from '@/lib/api';
 import { inventoryApi, type Sector } from '@/lib/api';
-import { AppShell, SectionCard } from '@/components/ui';
-import { SELLER_NAV, SELLER_BRAND_SUB, SellerSidebarFooter } from '../../_nav';
+import { SellerAppShell, SectionCard } from '@/components/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface UploadedImage {
@@ -499,10 +498,7 @@ export default function NewListingPage() {
   const allImages = draft.images; // show every image regardless of status
 
   return (
-    <AppShell
-      navItems={SELLER_NAV}
-      brandSub={SELLER_BRAND_SUB}
-      sidebarFooter={<SellerSidebarFooter />}
+    <SellerAppShell
       title="New listing"
       subtitle="List your dead inventory"
       actions={
@@ -972,6 +968,6 @@ export default function NewListingPage() {
           </div>
         </div>
       </div>
-    </AppShell>
+    </SellerAppShell>
   );
 }

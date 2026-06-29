@@ -13,7 +13,7 @@ sellerAnalyticsRouter.get('/dashboard', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.sub;
 
-    const [gmvRow, payoutRow, listingsRow, ordersRow, agingRow, shipmentsRow, recentOrdersRows] = await Promise.all([
+    const [gmvRow, payoutRow, listingsRow, ordersRow, agingRow, shipmentsRow, recentOrdersRows, summaryRow] = await Promise.all([
       queryOne<{ total: string; change_pct: string }>(
         `SELECT
            COALESCE(SUM(o.total_amount), 0) AS total,
@@ -80,7 +80,55 @@ sellerAnalyticsRouter.get('/dashboard', async (req: Request, res: Response) => {
          ORDER BY o.created_at DESC LIMIT 5`,
         [userId]
       ),
+      // Lifetime summary counters (used for the onboarding banner + headline KPIs).
+      queryOne<{
+        total_listings: string; live_listings: string; total_views: string;
+        total_orders: string; total_gmv: string; pending_orders: string;
+        active_orders: string; total_revenue: string;
+      }>(
+        `SELECT
+           (SELECT COUNT(*) FROM listings l
+              JOIN seller_profiles sp ON l.seller_id = sp.id
+              WHERE sp.user_id = $1 AND l.deleted_at IS NULL) AS total_listings,
+           (SELECT COUNT(*) FROM listings l
+              JOIN seller_profiles sp ON l.seller_id = sp.id
+              WHERE sp.user_id = $1 AND l.status IN ('live','active') AND l.deleted_at IS NULL) AS live_listings,
+           (SELECT COALESCE(SUM(l.views_count), 0) FROM listings l
+              JOIN seller_profiles sp ON l.seller_id = sp.id
+              WHERE sp.user_id = $1 AND l.deleted_at IS NULL) AS total_views,
+           (SELECT COUNT(*) FROM orders o
+              JOIN listings l ON o.listing_id = l.id
+              JOIN seller_profiles sp ON l.seller_id = sp.id
+              WHERE sp.user_id = $1) AS total_orders,
+           (SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o
+              JOIN listings l ON o.listing_id = l.id
+              JOIN seller_profiles sp ON l.seller_id = sp.id
+              WHERE sp.user_id = $1 AND o.status NOT IN ('cancelled','refunded')) AS total_gmv,
+           (SELECT COUNT(*) FROM orders o
+              JOIN listings l ON o.listing_id = l.id
+              JOIN seller_profiles sp ON l.seller_id = sp.id
+              WHERE sp.user_id = $1 AND o.status IN ('pending','paid','confirmed')) AS pending_orders,
+           (SELECT COUNT(*) FROM orders o
+              JOIN listings l ON o.listing_id = l.id
+              JOIN seller_profiles sp ON l.seller_id = sp.id
+              WHERE sp.user_id = $1 AND o.status IN ('paid','confirmed','processing','ready_to_ship','shipped','in_transit')) AS active_orders,
+           (SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o
+              JOIN listings l ON o.listing_id = l.id
+              JOIN seller_profiles sp ON l.seller_id = sp.id
+              WHERE sp.user_id = $1 AND o.status IN ('delivered','completed')) AS total_revenue`,
+        [userId]
+      ),
     ]);
+
+    const totalListings = parseInt((summaryRow as any)?.total_listings ?? '0', 10);
+    const totalViews = parseInt((summaryRow as any)?.total_views ?? '0', 10);
+    const totalOrders = parseInt((summaryRow as any)?.total_orders ?? '0', 10);
+    // Simple 0–100 performance score: blends conversion (views→orders) with a
+    // listing-liveness ratio. Purely derived, no extra column required.
+    const liveListings = parseInt((summaryRow as any)?.live_listings ?? '0', 10);
+    const convScore = totalViews > 0 ? Math.min(60, (totalOrders / totalViews) * 100 * 6) : 0;
+    const liveScore = totalListings > 0 ? (liveListings / totalListings) * 40 : 0;
+    const performanceScore = Math.round(convScore + liveScore);
 
     res.json(successResponse({
       gmv_month: parseFloat((gmvRow as any)?.total ?? '0'),
@@ -92,6 +140,16 @@ sellerAnalyticsRouter.get('/dashboard', async (req: Request, res: Response) => {
       aging_listings_count: parseInt((agingRow as any)?.count ?? '0', 10),
       orders_awaiting_shipment: parseInt((shipmentsRow as any)?.count ?? '0', 10),
       recent_orders: recentOrdersRows,
+      // ── Lifetime summary (drives onboarding banner + headline KPIs) ──
+      total_listings: totalListings,
+      live_listings: liveListings,
+      total_views: totalViews,
+      total_orders: totalOrders,
+      total_gmv: parseFloat((summaryRow as any)?.total_gmv ?? '0'),
+      pending_orders: parseInt((summaryRow as any)?.pending_orders ?? '0', 10),
+      active_orders: parseInt((summaryRow as any)?.active_orders ?? '0', 10),
+      total_revenue: parseFloat((summaryRow as any)?.total_revenue ?? '0'),
+      performance_score: performanceScore,
     }));
   } catch (err: any) {
     res.status(500).json(errorResponse(err.message || 'Failed to load seller dashboard'));
@@ -109,7 +167,8 @@ sellerAnalyticsRouter.get('/listings/:id/performance', async (req: Request, res:
         view_count: number; watchlist_count: number; inquiry_count: number;
         created_at: Date; title: string; asking_price: number;
       }>(
-        `SELECT l.view_count, l.watchlist_count, l.inquiry_count,
+        `SELECT l.views_count AS view_count, l.watchlist_count,
+                l.inquiries_count AS inquiry_count,
                 l.created_at, l.title, l.asking_price
          FROM listings l
          JOIN seller_profiles sp ON l.seller_id = sp.id
@@ -208,7 +267,7 @@ sellerAnalyticsRouter.get('/analytics', async (req: Request, res: Response) => {
       ),
       queryOne(
         `SELECT
-           COALESCE(SUM(l.view_count), 0) AS views,
+           COALESCE(SUM(l.views_count), 0) AS views,
            COALESCE(SUM(l.watchlist_count), 0) AS watchlists,
            COUNT(DISTINCT o.id) AS orders
          FROM listings l
@@ -218,10 +277,10 @@ sellerAnalyticsRouter.get('/analytics', async (req: Request, res: Response) => {
         [userId, days]
       ),
       query(
-        `SELECT l.id, l.title, l.view_count AS views,
+        `SELECT l.id, l.title, l.views_count AS views,
                 COUNT(DISTINCT o.id) AS orders,
                 COALESCE(SUM(o.total_amount), 0) AS revenue,
-                CASE WHEN l.view_count > 0 THEN ROUND(COUNT(DISTINCT o.id)::numeric / l.view_count * 100, 2) ELSE 0 END AS conversion_pct
+                CASE WHEN l.views_count > 0 THEN ROUND(COUNT(DISTINCT o.id)::numeric / l.views_count * 100, 2) ELSE 0 END AS conversion_pct
          FROM listings l
          JOIN seller_profiles sp ON l.seller_id = sp.id
          LEFT JOIN orders o ON o.listing_id = l.id AND o.created_at >= NOW() - ($2 || ' days')::INTERVAL

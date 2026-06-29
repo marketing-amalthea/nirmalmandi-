@@ -73,14 +73,15 @@ export default function DisputePage() {
   });
 
   async function uploadEvidenceFile(file: File, disputeId: string) {
+    setUploadedFiles((prev) => prev.map((f) => f.file === file ? { ...f, uploading: true, error: false } : f));
     try {
       const res = await disputeApi.uploadEvidence(disputeId, file.name, file.type);
-      const payload = res.data as unknown as { data?: { presigned_url: string; key: string } };
-      const { presigned_url: uploadUrl, key } = payload?.data ?? { presigned_url: '', key: '' };
+      const payload = res.data as unknown as { data?: { uploadUrl: string; fileUrl: string } };
+      const { uploadUrl, fileUrl } = payload?.data ?? { uploadUrl: '', fileUrl: '' };
       if (uploadUrl) {
         await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
       }
-      setUploadedFiles((prev) => prev.map((f) => f.file === file ? { ...f, uploading: false, done: true, key } : f));
+      setUploadedFiles((prev) => prev.map((f) => f.file === file ? { ...f, uploading: false, done: true, key: fileUrl } : f));
     } catch {
       setUploadedFiles((prev) => prev.map((f) => f.file === file ? { ...f, uploading: false, error: true } : f));
       toast.error(`Failed to upload ${file.name}`);

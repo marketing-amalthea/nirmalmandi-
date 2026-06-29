@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import {
   IndianRupee, Package, Users, ShoppingCart, Scale, TrendingUp, Download,
-  BarChart2, Percent, MousePointerClick, MapPin, UserPlus, FileBarChart, Loader2,
+  BarChart2, Percent, MapPin, UserPlus, FileBarChart, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -424,7 +424,6 @@ function BuyerBehaviorPanel() {
               return (
                 <div key={key}>
                   <div className="flex justify-between" style={{ fontSize: 12.5, marginBottom: 3 }}>
-                    <MousePointerClick size={0} />
                     <span style={{ fontWeight: 600, color: 'var(--nm-ink)' }}>{FUNNEL_LABELS[key]}</span>
                     <span style={{ color: 'var(--nm-muted)' }}>{count.toLocaleString('en-IN')} {i > 0 && <span style={{ color: 'var(--nm-green)' }}>({pct}%)</span>}</span>
                   </div>
