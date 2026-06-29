@@ -3,30 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Loader2, Copy, CheckCircle, Gift,
-  LayoutDashboard, ShoppingBag, Package, Heart, User,
-} from 'lucide-react';
+import { Loader2, Copy, CheckCircle, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppShell, inr } from '@/components/ui';
-import { type NavItem } from '@/components/ui/Sidebar';
 import { referralApi, type ReferralEntry, type ReferralPayout, type ReferralStats } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard',   href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Browse lots', href: '/listings',  icon: ShoppingBag },
-  { label: 'Orders',      href: '/orders',    icon: Package },
-  { label: 'Watchlist',   href: '/watchlist', icon: Heart },
-  { label: 'Referral',    href: '/referral',  icon: Gift },
-  { label: 'Profile',     href: '/profile',   icon: User },
-];
-
-const sidebarFooter = (
-  <div style={{ background: 'rgba(255,255,255,.07)', borderRadius: 12, padding: '12px 14px' }}>
-    <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,.65)', margin: 0, lineHeight: 1.4 }}>🛡 Escrow protected — every order is held safe until you confirm delivery.</p>
-  </div>
-);
+import { useBuyerNav, BUYER_SIDEBAR_FOOTER } from '@/lib/buyerNav';
 
 const HOW_IT_WORKS = [
   { title: 'Share your code', body: 'Send your referral link or code to other businesses.' },
@@ -36,6 +18,7 @@ const HOW_IT_WORKS = [
 
 export default function ReferralPage() {
   const router = useRouter();
+  const buyerNav = useBuyerNav();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => { if (!isAuthenticated()) router.replace('/login'); }, [router]);
@@ -63,7 +46,7 @@ export default function ReferralPage() {
 
   if (isLoading) {
     return (
-      <AppShell navItems={NAV} brandSub="Buyer Portal" sidebarFooter={sidebarFooter} title="Referral">
+      <AppShell navItems={buyerNav} brandSub="Buyer Portal" sidebarFooter={BUYER_SIDEBAR_FOOTER} title="Referral">
         <div className="flex items-center justify-center py-16"><Loader2 size={28} className="animate-spin" style={{ color: 'var(--nm-green)' }} /></div>
       </AppShell>
     );
@@ -71,7 +54,7 @@ export default function ReferralPage() {
 
   if (isError || !stats) {
     return (
-      <AppShell navItems={NAV} brandSub="Buyer Portal" sidebarFooter={sidebarFooter} title="Referral">
+      <AppShell navItems={buyerNav} brandSub="Buyer Portal" sidebarFooter={BUYER_SIDEBAR_FOOTER} title="Referral">
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
           <Gift size={48} style={{ color: 'var(--nm-faint)' }} />
           <h2 className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--nm-ink)' }}>Referral data unavailable</h2>
@@ -99,7 +82,7 @@ export default function ReferralPage() {
   ];
 
   return (
-    <AppShell navItems={NAV} brandSub="Buyer Portal" sidebarFooter={sidebarFooter} title="Referral">
+    <AppShell navItems={buyerNav} brandSub="Buyer Portal" sidebarFooter={BUYER_SIDEBAR_FOOTER} title="Referral">
       <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 24, maxWidth: 1000 }}>
         {/* ── Code card ── */}
         <div className="gradient-hero" style={{ borderRadius: 20, padding: 32, color: '#fff' }}>
