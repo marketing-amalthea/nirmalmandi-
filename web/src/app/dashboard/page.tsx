@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { ShoppingCart, IndianRupee, Clock, CheckCircle, Loader2 } from 'lucide-react';
+import { ShoppingCart, IndianRupee, Clock, CheckCircle, Loader2, Bell, Package } from 'lucide-react';
 import { AppShell, Kpi, Badge, SectionCard, Avatar, inr } from '@/components/ui';
 import PhoneVerificationWidget from '@/components/PhoneVerificationWidget';
 import { ordersApi, type Order } from '@/lib/api';
